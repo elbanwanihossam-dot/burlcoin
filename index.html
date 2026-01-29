@@ -5,46 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background: #0a0b10; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; text-align: center; overflow: hidden; }
-        .card { background: rgba(255,255,255,0.05); backdrop-filter: blur(15px); border-radius: 25px; padding: 20px; margin: 20px; border: 1px solid rgba(255,255,255,0.1); }
-        .balance { font-size: 45px; font-weight: 900; color: #ffcc00; text-shadow: 0 0 20px rgba(255,204,0,0.3); }
-        .coin-btn { width: 230px; height: 230px; margin: 30px auto; background: url('https://i.postimg.cc/9M77G0Z6/burlcoin.png') no-repeat center; background-size: contain; transition: transform 0.1s; cursor: pointer; filter: drop-shadow(0 0 30px rgba(255,204,0,0.2)); touch-action: manipulation; }
-        .coin-btn:active { transform: scale(0.92); }
-        .popup-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        .popup-box { background: white; color: #333; padding: 30px; border-radius: 35px; width: 85%; max-width: 400px; }
-        .btn-main { background: #9d6dff; color: white; border: none; padding: 18px; border-radius: 20px; width: 100%; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; }
-        .energy-bar { width: 85%; height: 10px; background: #222; border-radius: 10px; margin: 15px auto; overflow: hidden; }
-        .energy-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ffcc00, #ff6600); }
+        :root { --gold: #ffcc00; --bg: #0a0b10; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; text-align: center; }
+        .header-prices { background: rgba(255,255,255,0.05); display: flex; justify-content: space-around; padding: 10px; font-size: 12px; border-bottom: 1px solid #333; }
+        .price-up { color: #00ff88; }
+        .card { background: linear-gradient(145deg, #16171d, #1f2129); border-radius: 25px; padding: 20px; margin: 15px; border: 1px solid #333; }
+        .balance { font-size: 40px; font-weight: 900; color: var(--gold); }
+        .coin-btn { width: 200px; height: 200px; margin: 20px auto; background: url('https://i.postimg.cc/9M77G0Z6/burlcoin.png') no-repeat center; background-size: contain; filter: drop-shadow(0 0 20px rgba(255,204,0,0.3)); cursor: pointer; }
+        
+        /* تصميم المتجر */
+        .shop-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
+        .item { background: #1c1e26; border-radius: 15px; padding: 15px; border: 1px solid #444; }
+        .item img { width: 50px; }
+        .buy-btn { background: var(--gold); color: black; border: none; padding: 8px; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div id="welcome" class="popup-overlay">
-        <div class="popup-box">
-            <img src="https://i.postimg.cc/9M77G0Z6/burlcoin.png" width="100">
-            <h2 style="color:black">Ready to proceed?</h2>
-            <p>بضغطك هنا، أنت توافق على شروط التعدين في BurlCoin والبدء في جمع العملات.</p>
-            <button class="btn-main" onclick="document.getElementById('welcome').style.display='none'">Participate</button>
+
+    <div class="header-prices">
+        <div>BTC: <span id="btc-price" class="price-up">...</span></div>
+        <div>TON: <span id="ton-price" class="price-up">...</span></div>
+    </div>
+
+    <div class="card">
+        <div style="font-size: 12px; opacity: 0.6;">BURL BALANCE</div>
+        <div class="balance" id="burl-bal">0</div>
+        <div style="font-size: 13px; margin-top: 5px;">⚡ الطاقة: <span id="energy">1000</span></div>
+    </div>
+
+    <div class="coin-btn" onclick="tap()"></div>
+
+    <h3 style="text-align: right; margin-right: 20px;">المتجر (Items) 🛒</h3>
+    <div class="shop-container">
+        <div class="item">
+            <img src="https://cdn-icons-png.flaticon.com/512/1998/1998534.png">
+            <div style="font-size: 12px;">مطرقة حديدية</div>
+            <div style="color:var(--gold)">500 BURL</div>
+            <button class="buy-btn" onclick="buy(500, 2)">شراء</button>
+        </div>
+        <div class="item">
+            <img src="https://cdn-icons-png.flaticon.com/512/2991/2991611.png">
+            <div style="font-size: 12px;">روبوت تعدين</div>
+            <div style="color:var(--gold)">2000 BURL</div>
+            <button class="buy-btn" onclick="buy(2000, 10)">شراء</button>
         </div>
     </div>
-    <div class="card">
-        <div style="opacity: 0.5; font-size: 12px;">BURLCOIN TOTAL</div>
-        <div class="balance" id="bal">0</div>
-        <div class="energy-bar"><div class="energy-fill" id="fill"></div></div>
-        <div style="font-size: 14px;">⚡ Energy: <span id="nrg">1000</span></div>
-    </div>
-    <div class="coin-btn" id="coin"></div>
+
     <script>
-        const tg = window.Telegram.WebApp; tg.expand();
-        let b = 0; let e = 1000;
-        document.getElementById('coin').onclick = () => {
-            if(e > 0) {
-                b++; e--;
-                document.getElementById('bal').innerText = b.toLocaleString();
-                document.getElementById('nrg').innerText = e;
-                document.getElementById('fill').style.width = (e/10) + '%';
-                tg.HapticFeedback.impactOccurred('medium');
-            }
-        };
+        let balance = 0; let power = 1;
+        // جلب أسعار العملات الحقيقية
+        async function fetchPrices() {
+            try {
+                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,the-open-network&vs_currencies=usd');
+                const data = await res.json();
+                document.getElementById('btc-price').innerText = '$' + data.bitcoin.usd;
+                document.getElementById('ton-price').innerText = '$' + data['the-open-network'].usd;
+            } catch(e) { console.log("Price error"); }
+        }
+        setInterval(fetchPrices, 10000); fetchPrices();
+
+        function tap() {
+            balance += power;
+            document.getElementById('burl-bal').innerText = balance.toLocaleString();
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+        }
+
+        function buy(cost, addPower) {
+            if(balance >= cost) {
+                balance -= cost;
+                power += addPower;
+                document.getElementById('burl-bal').innerText = balance.toLocaleString();
+                alert("تم التطوير! قوتك زادت.");
+            } else { alert("رصيدك غير كافٍ!"); }
+        }
     </script>
 </body>
 </html>
