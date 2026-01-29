@@ -3,165 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BurlCoin CEO Simulator</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
-        :root { --blue: #00d4ff; --purple: #7241ff; --bg: #05050a; }
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Orbitron', sans-serif; overflow: hidden; height: 100vh; }
-        
-        /* تصميم الـ Tabs */
-        .page { display: none; height: calc(100vh - 80px); padding: 20px; overflow-y: auto; text-align: center; }
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;900&display=swap');
+        :root { --main-color: #00d4ff; --secondary: #7241ff; --bg: #05050a; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Cairo', sans-serif; overflow: hidden; height: 100vh; }
+        .page { display: none; height: calc(100vh - 70px); padding: 20px; overflow-y: auto; text-align: center; }
         .active { display: block; }
-
-        /* الهيدر والمحفظة */
-        .header { display: flex; justify-content: space-between; padding: 15px; background: rgba(0,0,0,0.5); align-items: center; }
-        #ton-connect { transform: scale(0.8); }
-
-        /* العملة الكبيرة */
-        .balance-container { margin: 30px 0; }
-        #balance { font-size: 50px; font-weight: 900; text-shadow: 0 0 20px var(--blue); }
-        .main-coin { width: 220px; height: 220px; cursor: pointer; transition: transform 0.1s; filter: drop-shadow(0 0 30px var(--purple)); margin: 0 auto; display: block; }
-        .main-coin:active { transform: scale(0.95); }
-
-        /* نظام الطاقة */
-        .energy-bar { width: 80%; height: 10px; background: #111; margin: 20px auto; border-radius: 10px; border: 1px solid #333; }
-        #energy-fill { width: 100%; height: 100%; background: linear-gradient(90deg, var(--purple), var(--blue)); transition: 0.3s; }
-
-        /* الكروت (الترقيات) */
-        .upgrade-card { background: #16161f; border-radius: 15px; padding: 15px; margin: 10px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .buy-btn { background: var(--blue); border: none; padding: 8px 15px; border-radius: 8px; color: black; font-weight: bold; cursor: pointer; }
-
-        /* الشريط السفلي */
+        .header { display: flex; justify-content: space-between; padding: 15px; background: rgba(0,0,0,0.6); align-items: center; border-bottom: 1px solid #222; }
+        #balance { font-size: 45px; font-weight: 900; text-shadow: 0 0 20px var(--main-color); margin: 20px 0; }
+        .coin-btn { width: 240px; height: 240px; cursor: pointer; transition: 0.1s; filter: drop-shadow(0 0 30px var(--secondary)); margin: 0 auto; display: block; }
+        .coin-btn:active { transform: scale(0.9); }
+        .energy-container { width: 80%; margin: 20px auto; }
+        .energy-bar { height: 12px; background: #111; border-radius: 10px; border: 1px solid #333; overflow: hidden; }
+        #energy-fill { width: 100%; height: 100%; background: linear-gradient(90deg, var(--secondary), var(--main-color)); }
         .nav { position: fixed; bottom: 0; width: 100%; height: 70px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; }
-        .nav-item { font-size: 10px; color: #666; cursor: pointer; text-align: center; }
-        .nav-item.active { color: var(--blue); }
-        
-        .pop-num { position: absolute; color: white; font-weight: 900; animation: floatUp 0.8s forwards; pointer-events: none; }
-        @keyframes floatUp { to { transform: translateY(-100px); opacity: 0; } }
+        .nav-item { font-size: 11px; color: #555; cursor: pointer; text-align: center; }
+        .nav-item.active { color: var(--main-color); }
+        .card { background: #16161f; border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
+        .buy-btn { background: var(--main-color); border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; }
+        .pop { position: absolute; color: white; font-weight: 900; animation: fadeUp 0.7s forwards; pointer-events: none; font-size: 24px; }
+        @keyframes fadeUp { to { transform: translateY(-100px); opacity: 0; } }
     </style>
 </head>
 <body>
-
     <div class="header">
-        <div id="status">CEO Rank: Bronze</div>
+        <div style="font-size: 12px;">🏆 Rank: <span id="rank">CEO</span></div>
         <div id="ton-connect"></div>
     </div>
 
     <div id="game" class="page active">
-        <div class="balance-container">
-            <div id="balance">0</div>
-            <div style="font-size: 12px; color: var(--blue);">PROFIT PER HOUR: +<span id="pph-display">0</span></div>
-        </div>
-        <img src="https://static.smartone.com/common/images/crypto/eth_logo.png" class="main-coin" id="coin-btn">
-        <div style="margin-top: 20px;">
-            <span>⚡ <span id="nrg">1000</span> / 1000</span>
+        <div id="balance">0</div>
+        <div style="color: var(--main-color); font-size: 12px; margin-bottom: 10px;">PROFIT PER HOUR: +<span id="pph">0</span></div>
+        <img src="https://static.smartone.com/common/images/crypto/eth_logo.png" class="coin-btn" id="tap-btn">
+        <div class="energy-container">
+            <div style="margin-bottom: 5px;">⚡ <span id="nrg">1000</span>/1000</div>
             <div class="energy-bar"><div id="energy-fill"></div></div>
         </div>
     </div>
 
     <div id="mine" class="page">
-        <h2>Upgrades (Passive Income)</h2>
-        <div class="upgrade-card">
-            <div><h4>Space Engine</h4><p id="cost-1">Cost: 100</p></div>
-            <button class="buy-btn" onclick="buyUpgrade(1, 100, 50)">Buy</button>
+        <h2>Upgrades & Cards</h2>
+        <div class="card">
+            <div><h4>Data Center</h4><p>Income: +100/h</p><p id="c1">Cost: 500</p></div>
+            <button class="buy-btn" onclick="buy(1, 500, 100)">Upgrade</button>
         </div>
-        <div class="upgrade-card">
-            <div><h4>Galaxy Miner</h4><p id="cost-2">Cost: 500</p></div>
-            <button class="buy-btn" onclick="buyUpgrade(2, 500, 250)">Buy</button>
+        <div class="card">
+            <div><h4>AI Bot</h4><p>Income: +500/h</p><p id="c2">Cost: 2000</p></div>
+            <button class="buy-btn" onclick="buy(2, 2000, 500)">Upgrade</button>
         </div>
-    </div>
-
-    <div id="airdrop" class="page">
-        <img src="https://ton.org/download/ton_symbol.png" width="80" style="margin-top: 50px;">
-        <h2>Airdrop Tasks</h2>
-        <p>Connect your wallet and stay active to be eligible.</p>
-        <button class="buy-btn" onclick="tg.showAlert('Check back later!')">Tasks Coming Soon</button>
     </div>
 
     <div class="nav">
-        <div class="nav-item active" onclick="showTab('game', this)">🎮<br>Game</div>
-        <div class="nav-item" onclick="showTab('mine', this)">⛏️<br>Mine</div>
-        <div class="nav-item" onclick="showTab('airdrop', this)">💎<br>Airdrop</div>
+        <div class="nav-item active" onclick="tab('game', this)">🎮<br>Game</div>
+        <div class="nav-item" onclick="tab('mine', this)">⛏️<br>Mine</div>
+        <div class="nav-item" onclick="tg.showAlert('Airdrop Soon!')">💎<br>Airdrop</div>
     </div>
 
     <script>
-        let bal = 0, nrg = 1000, pph = 0, clickPower = 1;
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
-        // 1. نظام الويب 3 - TonConnect
+        let b = 0, e = 1000, p = 0;
+        const tg = window.Telegram.WebApp; tg.expand();
+        
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp/main/public/tonconnect-manifest.json',
             buttonRootId: 'ton-connect'
         });
 
-        // 2. إدارة التبويبات
-        function showTab(id, el) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        function tab(id, el) {
+            document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             el.classList.add('active');
         }
 
-        // 3. النقر وحماية Click-rate
-        let lastClickTime = 0;
-        document.getElementById('coin-btn').addEventListener('touchstart', (e) => {
-            const now = Date.now();
-            if (now - lastClickTime < 60) return; // منع الغش (أسرع من 15 نقرة)
-            lastClickTime = now;
-
-            if (nrg >= clickPower) {
-                bal += clickPower;
-                nrg -= clickPower;
-                updateUI();
-                showPop(e.touches[0].pageX, e.touches[0].pageY);
+        document.getElementById('tap-btn').addEventListener('click', (ev) => {
+            if(e > 0) {
+                b++; e--; update();
+                const s = document.createElement('div'); s.className='pop'; s.innerText='+1';
+                s.style.left=ev.pageX+'px'; s.style.top=ev.pageY+'px';
+                document.body.appendChild(s); setTimeout(()=>s.remove(), 700);
                 tg.HapticFeedback.impactOccurred('medium');
             }
         });
 
-        // 4. معادلة النمو الأسية للترقيات
-        let levels = { 1: 0, 2: 0 };
-        function buyUpgrade(id, baseCost, bonus) {
-            let cost = Math.floor(baseCost * Math.pow(1.07, levels[id]));
-            if (bal >= cost) {
-                bal -= cost;
-                levels[id]++;
-                pph += bonus;
-                updateUI();
-                document.getElementById(`cost-${id}`).innerText = `Cost: ${Math.floor(baseCost * Math.pow(1.07, levels[id]))}`;
-                tg.showAlert("Upgrade Successful!");
-            } else {
-                tg.showAlert("Not enough balance!");
-            }
+        function buy(id, cost, income) {
+            if(b >= cost) { b -= cost; p += income; update(); tg.showAlert('Success!'); }
+            else { tg.showAlert('No Money!'); }
         }
 
-        function updateUI() {
-            document.getElementById('balance').innerText = Math.floor(bal).toLocaleString();
-            document.getElementById('pph-display').innerText = pph.toLocaleString();
-            document.getElementById('nrg').innerText = nrg;
-            document.getElementById('energy-fill').style.width = (nrg / 10) + '%';
+        function update() {
+            document.getElementById('balance').innerText = Math.floor(b).toLocaleString();
+            document.getElementById('pph').innerText = p.toLocaleString();
+            document.getElementById('nrg').innerText = e;
+            document.getElementById('energy-fill').style.width = (e/10)+'%';
         }
 
-        function showPop(x, y) {
-            const p = document.createElement('div');
-            p.className = 'pop-num'; p.innerText = `+${clickPower}`;
-            p.style.left = x + 'px'; p.style.top = y + 'px';
-            document.body.appendChild(p);
-            setTimeout(() => p.remove(), 800);
-        }
-
-        // 5. الدخل السلبي (Passive Income) كل ثانية
         setInterval(() => {
-            if (pph > 0) {
-                bal += (pph / 3600);
-                updateUI();
-            }
-            if (nrg < 1000) {
-                nrg += 2;
-                updateUI();
-            }
+            if(p > 0) { b += (p/3600); update(); }
+            if(e < 1000) { e += 2; update(); }
         }, 1000);
     </script>
 </body>
