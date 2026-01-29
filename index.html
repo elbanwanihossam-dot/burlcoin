@@ -6,98 +6,155 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
-        body {
-            margin: 0; background: #020205; color: white;
-            font-family: 'Orbitron', sans-serif; overflow: hidden;
-            height: 100vh; display: flex; flex-direction: column;
-            /* خلفية فضاء حقيقية */
-            background-image: url('https://www.transparenttextures.com/patterns/stardust.png'), 
-                              radial-gradient(circle at center, #1b2735 0%, #020205 100%);
-        }
-
-        .header { padding: 15px; display: flex; justify-content: space-around; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); }
-        .balance-box { 
-            margin: 20px auto; padding: 20px; width: 80%;
-            background: rgba(255, 255, 255, 0.05); border-radius: 20px;
-            border: 1px solid rgba(0, 212, 255, 0.3); text-align: center;
-        }
-
-        .coin-zone { flex: 1; display: flex; align-items: center; justify-content: center; }
         
-        /* صورة العملة (رابط مباشر جديد بجودة عالية) */
-        .main-coin {
-            width: 260px; height: 260px;
-            background: url('https://cdn-icons-png.flaticon.com/512/8142/8142142.png') no-repeat center;
-            background-size: contain; cursor: pointer;
-            filter: drop-shadow(0 0 40px #00d4ff);
-            animation: float 3s ease-in-out infinite;
-            transition: transform 0.1s;
+        body {
+            margin: 0; background: #05050a; color: white;
+            font-family: 'Orbitron', sans-serif; overflow: hidden; height: 100vh;
+            display: flex; flex-direction: column;
         }
 
-        @keyframes float { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-15px) rotate(5deg); } }
-        .main-coin:active { transform: scale(0.9); }
+        /* محرك النجوم والكواكب */
+        #space-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
 
-        /* القائمة السفلية باحترافية */
-        .nav {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-            padding: 15px; background: #0a0a0f; border-top: 1px solid #333;
+        /* نظام الليفلات */
+        .league-header {
+            padding: 15px; text-align: center; background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0, 212, 255, 0.2);
         }
-        .nav-item {
-            text-align: center; font-size: 10px; color: #aaa;
-            background: rgba(255,255,255,0.03); padding: 10px 5px; border-radius: 12px;
+        .league-name { color: #00d4ff; font-size: 14px; font-weight: bold; text-shadow: 0 0 10px #00d4ff; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+        .stat-card { background: rgba(255, 255, 255, 0.03); border-radius: 15px; padding: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+        /* العملة 3D بتصميم فضاء */
+        .coin-wrapper {
+            width: 280px; height: 280px; position: relative;
+            cursor: pointer; transform-style: preserve-3d; transition: transform 0.1s;
         }
-        .nav-item img { width: 22px; display: block; margin: 0 auto 5px; filter: hue-rotate(180deg); }
+        .coin-img {
+            width: 100%; height: 100%; border-radius: 50%;
+            background: url('https://i.ibb.co/L8N76Xn/gold-coin.png') no-repeat center;
+            background-size: cover; filter: drop-shadow(0 0 50px #7241ff);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float { 0%, 100% { transform: translateY(0) rotateY(0deg); } 50% { transform: translateY(-20px) rotateY(15deg); } }
+
+        .balance-container { text-align: center; margin-bottom: 20px; }
+        .total-balance { font-size: 50px; font-weight: 900; background: linear-gradient(#fff, #00d4ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* القائمة السفلية (نفس جودة الصور) */
+        .nav-bar {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;
+            padding: 10px; background: rgba(0, 0, 0, 0.9); border-top: 1px solid #333;
+        }
+        .nav-btn { text-align: center; font-size: 9px; opacity: 0.6; transition: 0.3s; }
+        .nav-btn img { width: 24px; display: block; margin: 0 auto 5px; }
+        .nav-btn.active { opacity: 1; color: #00d4ff; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div id="btc" style="color:#f7931a">BTC: $--</div>
-        <div id="ton" style="color:#0088cc">TON: $--</div>
+    <canvas id="space-canvas"></canvas>
+
+    <div class="league-header">
+        <div class="league-name" id="league-title">BRONZE PILOT ></div>
+        <div style="width: 60%; height: 4px; background: #222; margin: 5px auto; border-radius: 10px;">
+            <div id="league-progress" style="width: 10%; height: 100%; background: #00d4ff; border-radius: 10px;"></div>
+        </div>
     </div>
 
-    <div class="balance-box">
-        <div style="font-size: 10px; opacity: 0.5;">TOTAL BURL</div>
-        <div style="font-size: 35px; font-weight: 900; color: #00d4ff;" id="bal">0</div>
+    <div class="stats-grid">
+        <div class="stat-card"><small style="color:#00d4ff">Earn per tap</small><br><b>+<span id="tap-val">1</span></b></div>
+        <div class="stat-card"><small style="color:#7241ff">To next level</small><br><b><span id="next-lvl">5.0K</span></b></div>
     </div>
 
-    <div class="coin-zone">
-        <div class="main-coin" onclick="tap(event)"></div>
+    <div class="main-content">
+        <div class="balance-container">
+            <div class="total-balance" id="balance">0</div>
+        </div>
+        <div class="coin-wrapper" onclick="handleTap(event)">
+            <div class="coin-img" id="coin"></div>
+        </div>
     </div>
 
-    <div style="text-align:center; padding-bottom: 10px;">
-        <div style="font-size: 12px;">⚡ <span id="nrg">1000</span> / 1000</div>
+    <div style="padding: 20px;">
+        <div style="display:flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;">
+            <span>⚡ <span id="energy">1000</span> / 1000</span>
+            <span id="recovery-rate">Turbo: ON</span>
+        </div>
+        <div style="width: 100%; height: 8px; background: #111; border-radius: 10px; border: 1px solid #333;">
+            <div id="energy-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #7241ff, #00d4ff); border-radius: 10px;"></div>
+        </div>
     </div>
 
-    <div class="nav">
-        <div class="nav-item"><img src="https://cdn-icons-png.flaticon.com/512/2171/2171221.png">GAMES</div>
-        <div class="nav-item"><img src="https://cdn-icons-png.flaticon.com/512/10000/10000570.png">WALLET</div>
-        <div class="nav-item"><img src="https://cdn-icons-png.flaticon.com/512/1069/1069159.png">TASKS</div>
-        <div class="nav-item"><img src="https://cdn-icons-png.flaticon.com/512/1250/1250592.png">INVITE</div>
+    <div class="nav-bar">
+        <div class="nav-btn active"><img src="https://cdn-icons-png.flaticon.com/512/3813/3813681.png">Exchange</div>
+        <div class="nav-btn"><img src="https://cdn-icons-png.flaticon.com/512/2583/2583218.png">Mine</div>
+        <div class="nav-btn"><img src="https://cdn-icons-png.flaticon.com/512/9187/9187604.png">Friends</div>
+        <div class="nav-btn"><img src="https://cdn-icons-png.flaticon.com/512/1069/1069159.png">Earn</div>
+        <div class="nav-btn" onclick="alert('Wallet Coming Soon!')"><img src="https://cdn-icons-png.flaticon.com/512/10000/10000570.png">Airdrop</div>
     </div>
 
     <script>
-        let b = 0; let e = 1000;
+        let balance = 0; let energy = 1000; let tapValue = 1;
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        function tap(ev) {
-            if(e > 0) {
-                b++; e--;
-                document.getElementById('bal').innerText = b.toLocaleString();
-                document.getElementById('nrg').innerText = e;
+        function handleTap(e) {
+            if(energy > 0) {
+                balance += tapValue; energy -= tapValue;
+                updateUI();
+                createFloatingText(e);
                 tg.HapticFeedback.impactOccurred('medium');
+                checkLeagues();
             }
         }
 
-        async function getPrice() {
-            try {
-                const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,the-open-network&vs_currencies=usd');
-                const d = await r.json();
-                document.getElementById('btc').innerText = 'BTC: $' + d.bitcoin.usd.toLocaleString();
-                document.getElementById('ton').innerText = 'TON: $' + d['the-open-network'].usd;
-            } catch(e) {}
+        function updateUI() {
+            document.getElementById('balance').innerText = balance.toLocaleString();
+            document.getElementById('energy').innerText = energy;
+            document.getElementById('energy-bar').style.width = (energy/10) + '%';
         }
-        setInterval(getPrice, 10000); getPrice();
+
+        function checkLeagues() {
+            const title = document.getElementById('league-title');
+            if(balance > 100000) { title.innerText = "GALACTIC EMPEROR >"; tapValue = 10; document.getElementById('tap-val').innerText = "10"; }
+            else if(balance > 50000) { title.innerText = "STAR COMMANDER >"; tapValue = 5; document.getElementById('tap-val').innerText = "5"; }
+            else if(balance > 10000) { title.innerText = "SILVER PILOT >"; tapValue = 2; document.getElementById('tap-val').innerText = "2"; }
+        }
+
+        // محرك خلفية النجوم
+        const canvas = document.getElementById('space-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        function initStars() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            for(let i=0; i<100; i++) stars.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: Math.random()*2, speed: Math.random()*0.5});
+        }
+        function draw() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            stars.forEach(s => {
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.size, 0, Math.PI*2); ctx.fill();
+                s.y += s.speed; if(s.y > canvas.height) s.y = 0;
+            });
+            requestAnimationFrame(draw);
+        }
+        initStars(); draw();
+
+        function createFloatingText(e) {
+            const txt = document.createElement('div');
+            txt.innerText = `+${tapValue}`;
+            txt.style.position = 'absolute';
+            txt.style.left = e.pageX + 'px'; txt.style.top = e.pageY + 'px';
+            txt.style.color = '#00d4ff'; txt.style.fontWeight = '900';
+            txt.style.animation = 'fly 0.7s forwards';
+            document.body.appendChild(txt);
+            setTimeout(() => txt.remove(), 700);
+        }
     </script>
+    <style> @keyframes fly { to { transform: translateY(-100px); opacity: 0; } } </style>
 </body>
 </html>
