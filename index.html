@@ -6,101 +6,146 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
-        body { margin: 0; background: #020205; color: white; font-family: 'Orbitron', sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        #space-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;900&display=swap');
+        :root { --main-blue: #00d4ff; --bg-dark: #0a0a0f; --card-bg: #16161f; }
+        body { margin: 0; background: var(--bg-dark); color: white; font-family: 'Cairo', sans-serif; overflow: hidden; height: 100vh; }
         
-        /* تصميم زرار المحفظة Web3 */
-        #ton-connect-btn { position: absolute; top: 15px; right: 15px; z-index: 100; transform: scale(0.8); }
-
-        .balance-section { text-align: center; padding-top: 60px; }
-        .bal-amount { font-size: 50px; font-weight: 900; color: #fff; text-shadow: 0 0 20px #00d4ff; }
+        /* الهيدر العلوي */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(0,0,0,0.5); }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 35px; height: 35px; background: var(--main-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
         
-        .main-mining { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
-        .coin-box { width: 250px; height: 250px; cursor: pointer; transition: 0.1s; filter: drop-shadow(0 0 30px #7241ff); }
-        .coin-box img { width: 100%; height: 100%; }
+        /* محتوى الصفحات */
+        .page { display: none; height: calc(100vh - 150px); overflow-y: auto; padding: 20px; }
+        .page.active { display: block; }
 
-        .footer-web3 { display: grid; grid-template-columns: repeat(4, 1fr); padding: 15px; background: rgba(0,0,0,0.9); border-top: 1px solid #333; }
-        .nav-item { text-align: center; font-size: 10px; color: #888; cursor: pointer; }
-        .nav-item img { width: 22px; margin-bottom: 5px; }
-        .nav-item.active { color: #00d4ff; }
+        /* صفحة التعدين (Mining) */
+        .mining-container { text-align: center; display: flex; flex-direction: column; justify-content: center; height: 100%; }
+        .coin-balance { font-size: 50px; font-weight: 900; margin-bottom: 20px; text-shadow: 0 0 20px var(--main-blue); }
+        .main-coin { width: 250px; height: 250px; margin: 0 auto; cursor: pointer; transition: transform 0.1s; filter: drop-shadow(0 0 40px #7241ff); }
+        .main-coin:active { transform: scale(0.95); }
+
+        /* نظام الكروت (زي هامستر) */
+        .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .card { background: var(--card-bg); border-radius: 20px; padding: 15px; text-align: center; border: 1px solid #222; position: relative; }
+        .card img { width: 50px; margin-bottom: 10px; }
+        .card h4 { margin: 5px 0; font-size: 14px; }
+        .card .price { color: #f39c12; font-size: 12px; }
+
+        /* التاب بار (Footer) */
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #000; display: grid; grid-template-columns: repeat(4, 1fr); padding: 10px 0; border-top: 1px solid #222; z-index: 1000; }
+        .nav-item { text-align: center; color: #555; font-size: 12px; cursor: pointer; }
+        .nav-item.active { color: var(--main-blue); }
+        .nav-item i { font-size: 20px; display: block; margin-bottom: 5px; }
+
+        /* تأثير الأرقام */
+        .pop { position: absolute; color: white; font-weight: 900; animation: floatUp 0.8s forwards; pointer-events: none; }
+        @keyframes floatUp { to { transform: translateY(-100px); opacity: 0; } }
     </style>
 </head>
 <body>
-    <canvas id="space-canvas"></canvas>
-    
-    <div id="ton-connect-btn"></div>
 
-    <div class="balance-section">
-        <div style="font-size: 12px; color: #00d4ff;">BURL TOKEN BALANCE</div>
-        <div class="bal-amount" id="bal">0</div>
+    <div class="header">
+        <div class="user-info">
+            <div class="user-avatar" id="u-initial">Y</div>
+            <span id="u-name">Explorer</span>
+        </div>
+        <div id="ton-connect"></div>
     </div>
 
-    <div class="main-mining">
-        <div class="coin-box" onclick="tap(event)">
-            <img src="https://static.smartone.com/common/images/crypto/eth_logo.png" id="coin">
+    <div id="game-page" class="page active">
+        <div class="mining-container">
+            <div class="coin-balance" id="balance">0</div>
+            <img src="https://static.smartone.com/common/images/crypto/eth_logo.png" class="main-coin" onclick="handleTap(event)">
+            <div style="margin-top: 30px;">
+                <span>⚡ <span id="energy">1000</span> / 1000</span>
+                <div style="width:200px; height:10px; background:#222; border-radius:10px; margin: 10px auto; overflow:hidden;">
+                    <div id="energy-bar" style="width:100%; height:100%; background:var(--main-blue);"></div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div style="padding: 15px;">
-        <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:5px;">
-            <span>⚡ ENERGY: <span id="nrg">1000</span></span>
-            <span id="wallet-status" style="color:#7241ff">WALLET: DISCONNECTED</span>
-        </div>
-        <div style="width:100%; height:8px; background:#111; border-radius:10px; overflow:hidden;">
-            <div id="nrg-bar" style="width:100%; height:100%; background:linear-gradient(90deg, #7241ff, #00d4ff);"></div>
+    <div id="upgrade-page" class="page">
+        <h2 style="text-align:center">ترقيات المركبة 🚀</h2>
+        <div class="card-grid">
+            <div class="card" onclick="buyUpgrade(500)">
+                <img src="https://cdn-icons-png.flaticon.com/512/2583/2583218.png">
+                <h4>محرك نفاث</h4>
+                <div class="price">💰 500</div>
+            </div>
+            <div class="card" onclick="buyUpgrade(1000)">
+                <img src="https://cdn-icons-png.flaticon.com/512/10000/10000570.png">
+                <h4>درع ذهبي</h4>
+                <div class="price">💰 1,000</div>
+            </div>
         </div>
     </div>
 
-    <div class="footer-web3">
-        <div class="nav-item active"><img src="https://cdn-icons-png.flaticon.com/512/3813/3813681.png"><br>TAP</div>
-        <div class="nav-item"><img src="https://cdn-icons-png.flaticon.com/512/2583/2583218.png"><br>UPGRADE</div>
-        <div class="nav-item"><img src="https://cdn-icons-png.flaticon.com/512/9187/9187604.png"><br>TEAM</div>
-        <div class="nav-item" onclick="showAirdrop()"><img src="https://cdn-icons-png.flaticon.com/512/10000/10000570.png"><br>AIRDROP</div>
+    <div id="wallet-page" class="page">
+        <div style="text-align:center; padding-top:50px;">
+            <img src="https://ton.org/download/ton_symbol.png" width="80">
+            <h3>محفظة Web3</h3>
+            <p style="color:#888">اربط محفظتك لتلقي الإيردروب عند الإدراج</p>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <div class="nav-item active" onclick="showPage('game-page', this)">🎮<span>Games</span></div>
+        <div class="nav-item" onclick="showPage('upgrade-page', this)">⛏️<span>Mine</span></div>
+        <div class="nav-item" onclick="showPage('wallet-page', this)">👛<span>Wallet</span></div>
+        <div class="nav-item" onclick="tg.showAlert('Coming Soon')">👤<span>Profile</span></div>
     </div>
 
     <script>
-        let b = 0, e = 1000;
-        const tg = window.Telegram.WebApp; tg.expand();
+        let balance = 0;
+        let energy = 1000;
+        const tg = window.Telegram.WebApp;
+        tg.expand();
 
-        // إعداد TonConnect Web3
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp/main/public/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect-btn'
-        });
+        // نظام التنقل بين الصفحات
+        function showPage(pageId, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            el.classList.add('active');
+        }
 
-        // مراقبة حالة المحفظة
-        tonConnectUI.onStatusChange(wallet => {
-            if (wallet) {
-                document.getElementById('wallet-status').innerText = "WALLET: CONNECTED ✅";
-                document.getElementById('wallet-status').style.color = "#00ff88";
-                tg.showAlert("Wallet Connected Successfully!");
-            }
-        });
+        function handleTap(e) {
+            if(energy > 0) {
+                balance += 1;
+                energy -= 1;
+                document.getElementById('balance').innerText = balance.toLocaleString();
+                document.getElementById('energy').innerText = energy;
+                document.getElementById('energy-bar').style.width = (energy/10) + '%';
+                
+                // تأثير الرقم الطائر
+                const pop = document.createElement('div');
+                pop.className = 'pop';
+                pop.innerText = '+1';
+                pop.style.left = e.pageX + 'px';
+                pop.style.top = e.pageY + 'px';
+                document.body.appendChild(pop);
+                setTimeout(() => pop.remove(), 800);
 
-        function tap(ev) {
-            if(e > 0) {
-                b += 1; e -= 1;
-                document.getElementById('bal').innerText = b.toLocaleString();
-                document.getElementById('nrg').innerText = e;
-                document.getElementById('nrg-bar').style.width = (e/10) + '%';
                 tg.HapticFeedback.impactOccurred('medium');
             }
         }
 
-        // محرك الخلفية الفضائية
-        const canvas = document.getElementById('space-canvas'), ctx = canvas.getContext('2d');
-        let stars = [];
-        function init() {
-            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-            for(let i=0; i<100; i++) stars.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, r:Math.random()*1.5, v:Math.random()*0.5});
-        }
-        function anim() {
-            ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="white";
-            stars.forEach(s => { ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); s.y+=s.v; if(s.y>canvas.height) s.y=0; });
-            requestAnimationFrame(anim);
-        }
-        init(); anim();
+        // إعداد TonConnect
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp/main/public/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect'
+        });
+
+        // شحن الطاقة تلقائياً
+        setInterval(() => {
+            if(energy < 1000) {
+                energy += 1;
+                document.getElementById('energy').innerText = energy;
+                document.getElementById('energy-bar').style.width = (energy/10) + '%';
+            }
+        }, 1500);
     </script>
 </body>
 </html>
