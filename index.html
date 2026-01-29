@@ -4,80 +4,136 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        :root { --gold: #ffcc00; --bg: #0a0b10; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; text-align: center; }
-        .header-prices { background: rgba(255,255,255,0.05); display: flex; justify-content: space-around; padding: 10px; font-size: 12px; border-bottom: 1px solid #333; }
-        .price-up { color: #00ff88; }
-        .card { background: linear-gradient(145deg, #16171d, #1f2129); border-radius: 25px; padding: 20px; margin: 15px; border: 1px solid #333; }
-        .balance { font-size: 40px; font-weight: 900; color: var(--gold); }
-        .coin-btn { width: 200px; height: 200px; margin: 20px auto; background: url('https://i.postimg.cc/9M77G0Z6/burlcoin.png') no-repeat center; background-size: contain; filter: drop-shadow(0 0 20px rgba(255,204,0,0.3)); cursor: pointer; }
+        :root { --p: #7241ff; --s: #00d4ff; --g: #ffcc00; }
+        body {
+            margin: 0; background: #050508; color: white;
+            font-family: 'Orbitron', sans-serif; overflow: hidden;
+            height: 100vh; display: flex; flex-direction: column;
+            background: radial-gradient(circle at 50% 50%, #1a1033 0%, #050508 100%);
+        }
+        /* تأثير الجرافيك المتقدم في الخلفية */
+        .bg-glow {
+            position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%);
+            width: 300px; height: 300px; background: var(--p);
+            filter: blur(120px); opacity: 0.3; z-index: 0;
+        }
+        .header {
+            padding: 20px; display: flex; justify-content: space-around;
+            background: rgba(255,255,255,0.03); backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 10;
+        }
+        .price-tag { font-size: 10px; color: var(--s); text-transform: uppercase; }
+        .price-val { font-size: 14px; font-weight: 900; color: #fff; }
+
+        .main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5; }
         
-        /* تصميم المتجر */
-        .shop-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
-        .item { background: #1c1e26; border-radius: 15px; padding: 15px; border: 1px solid #444; }
-        .item img { width: 50px; }
-        .buy-btn { background: var(--gold); color: black; border: none; padding: 8px; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; }
+        /* العملة 3D الاحترافية */
+        .coin-container {
+            position: relative; width: 260px; height: 260px;
+            perspective: 1000px; cursor: pointer;
+        }
+        .coin {
+            width: 100%; height: 100%;
+            background: url('https://i.postimg.cc/9M77G0Z6/burlcoin.png') no-repeat center;
+            background-size: contain; transform-style: preserve-3d;
+            filter: drop-shadow(0 0 30px rgba(114, 65, 255, 0.6));
+            transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: float 4s ease-in-out infinite;
+        }
+        @keyframes float { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-15px) rotate(5deg); } }
+
+        .balance-label { font-size: 12px; color: var(--p); margin-top: 20px; letter-spacing: 3px; }
+        .balance-val { font-size: 50px; font-weight: 900; text-shadow: 0 0 20px var(--p); margin-bottom: 10px; }
+
+        .energy-wrap { width: 70%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+        .energy-bar { width: 100%; height: 100%; background: linear-gradient(90deg, var(--p), var(--s)); box-shadow: 0 0 10px var(--s); transition: 0.3s; }
+
+        /* الأزرار الـ 3D التحتية */
+        .dock {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            padding: 20px; background: rgba(0,0,0,0.8); backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn-3d {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px; padding: 12px; font-size: 10px; font-weight: bold;
+            text-align: center; color: rgba(255,255,255,0.7); transition: 0.2s;
+        }
+        .btn-3d:active { transform: scale(0.9) translateY(5px); background: var(--p); color: white; }
+
+        /* تأثير العملات المتطايرة */
+        .particle {
+            position: absolute; pointer-events: none; color: var(--g);
+            font-weight: bold; font-size: 20px; animation: fly 0.8s ease-out forwards;
+        }
+        @keyframes fly { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-100px) scale(1.5); } }
     </style>
 </head>
 <body>
-
-    <div class="header-prices">
-        <div>BTC: <span id="btc-price" class="price-up">...</span></div>
-        <div>TON: <span id="ton-price" class="price-up">...</span></div>
+    <div class="bg-glow"></div>
+    <div class="header">
+        <div style="text-align:left"><div class="price-tag">Bitcoin</div><div class="price-val" id="btc">$--,---</div></div>
+        <div style="text-align:right"><div class="price-tag">Toncoin</div><div class="price-val" id="ton">$--.--</div></div>
     </div>
 
-    <div class="card">
-        <div style="font-size: 12px; opacity: 0.6;">BURL BALANCE</div>
-        <div class="balance" id="burl-bal">0</div>
-        <div style="font-size: 13px; margin-top: 5px;">⚡ الطاقة: <span id="energy">1000</span></div>
+    <div class="main">
+        <div class="balance-label">BURL BALANCE</div>
+        <div class="balance-val" id="bal">0</div>
+        
+        <div class="coin-container" onclick="tap(event)">
+            <div class="coin" id="coin"></div>
+        </div>
+
+        <div class="energy-wrap"><div class="energy-bar" id="ebar"></div></div>
+        <p style="font-size: 12px; opacity: 0.5;">⚡ ENERGY: <span id="eval">1000</span>/1000</p>
     </div>
 
-    <div class="coin-btn" onclick="tap()"></div>
-
-    <h3 style="text-align: right; margin-right: 20px;">المتجر (Items) 🛒</h3>
-    <div class="shop-container">
-        <div class="item">
-            <img src="https://cdn-icons-png.flaticon.com/512/1998/1998534.png">
-            <div style="font-size: 12px;">مطرقة حديدية</div>
-            <div style="color:var(--gold)">500 BURL</div>
-            <button class="buy-btn" onclick="buy(500, 2)">شراء</button>
-        </div>
-        <div class="item">
-            <img src="https://cdn-icons-png.flaticon.com/512/2991/2991611.png">
-            <div style="font-size: 12px;">روبوت تعدين</div>
-            <div style="color:var(--gold)">2000 BURL</div>
-            <button class="buy-btn" onclick="buy(2000, 10)">شراء</button>
-        </div>
+    <div class="dock">
+        <div class="btn-3d" onclick="tg.showAlert('Coming Soon!')">🛒<br>SHOP</div>
+        <div class="btn-3d" onclick="tg.showAlert('Complete Tasks')">📋<br>TASKS</div>
+        <div class="btn-3d" onclick="tg.showAlert('Invite Friends')">👥<br>INVITE</div>
+        <div class="btn-3d" onclick="tg.showAlert('TON Wallet')">💎<br>WALLET</div>
     </div>
 
     <script>
-        let balance = 0; let power = 1;
-        // جلب أسعار العملات الحقيقية
-        async function fetchPrices() {
+        let b = 0; let e = 1000;
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        function tap(event) {
+            if(e > 0) {
+                b += 1; e -= 1;
+                document.getElementById('bal').innerText = b.toLocaleString();
+                document.getElementById('eval').innerText = e;
+                document.getElementById('ebar').style.width = (e/10) + '%';
+                
+                // أنيميشن العملة
+                const c = document.getElementById('coin');
+                c.style.transform = 'scale(0.9) rotateX(15deg)';
+                setTimeout(() => c.style.transform = 'scale(1) rotateX(0)', 80);
+                
+                // تأثير متطاير (+1)
+                const p = document.createElement('div');
+                p.className = 'particle'; p.innerText = '+1';
+                p.style.left = event.pageX + 'px'; p.style.top = event.pageY + 'px';
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 800);
+
+                tg.HapticFeedback.impactOccurred('heavy');
+            }
+        }
+
+        async function updatePrices() {
             try {
-                const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,the-open-network&vs_currencies=usd');
-                const data = await res.json();
-                document.getElementById('btc-price').innerText = '$' + data.bitcoin.usd;
-                document.getElementById('ton-price').innerText = '$' + data['the-open-network'].usd;
-            } catch(e) { console.log("Price error"); }
+                const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,the-open-network&vs_currencies=usd');
+                const d = await r.json();
+                document.getElementById('btc').innerText = '$' + d.bitcoin.usd.toLocaleString();
+                document.getElementById('ton').innerText = '$' + d['the-open-network'].usd.toFixed(2);
+            } catch(err) {}
         }
-        setInterval(fetchPrices, 10000); fetchPrices();
-
-        function tap() {
-            balance += power;
-            document.getElementById('burl-bal').innerText = balance.toLocaleString();
-            window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-        }
-
-        function buy(cost, addPower) {
-            if(balance >= cost) {
-                balance -= cost;
-                power += addPower;
-                document.getElementById('burl-bal').innerText = balance.toLocaleString();
-                alert("تم التطوير! قوتك زادت.");
-            } else { alert("رصيدك غير كافٍ!"); }
-        }
+        setInterval(updatePrices, 10000); updatePrices();
     </script>
 </body>
 </html>
