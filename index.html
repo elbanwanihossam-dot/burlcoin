@@ -4,163 +4,151 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BurlCoin: Galactic Sovereign</title>
+    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;600;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Exo+2:wght@300;600;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
         :root {
             --neon: #00f2ff; --purple: #bc13fe; --gold: #f3ba2f; --red: #ff3e3e;
-            --bg: #020205; --glass: rgba(255, 255, 255, 0.05);
+            --bg: #050508; --glass: rgba(255, 255, 255, 0.07);
         }
 
         body, html { margin: 0; padding: 0; background: var(--bg); color: #fff; font-family: 'Exo 2', sans-serif; overflow: hidden; height: 100vh; }
+
+        /* --- UI LAYOUT --- */
+        .app-shell { display: flex; flex-direction: column; height: 100vh; position: relative; z-index: 10; }
+
+        /* Header Area */
+        header { padding: 20px; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
+        .top-nav { display: flex; justify-content: space-between; align-items: center; }
+        .level-badge { background: var(--glass); border: 1px solid var(--neon); padding: 5px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; color: var(--neon); }
         
-        #space-engine { position: fixed; top: 0; left: 0; z-index: -1; }
-
-        /* UI Shell */
-        .shell { height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 10; }
+        /* Dashboard Stats */
+        .dashboard { text-align: center; margin: 15px 0; }
+        .balance-group { position: relative; display: inline-block; }
+        .main-balance { font-family: 'Orbitron', sans-serif; font-size: 4rem; font-weight: 900; background: linear-gradient(to bottom, #fff, var(--neon)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 15px rgba(0,242,255,0.5)); }
         
-        /* Glassmorphism Header */
-        header { 
-            padding: 15px; background: rgba(0,0,0,0.6); backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(0,242,255,0.2); 
-        }
+        /* Progress Bar */
+        .exp-bar-container { width: 80%; height: 6px; background: #1a1a1a; border-radius: 10px; margin: 10px auto; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        #exp-fill { width: 30%; height: 100%; background: var(--neon); box-shadow: 0 0 10px var(--neon); transition: 0.5s; }
 
-        .header-top { display: flex; justify-content: space-between; align-items: center; }
-        .wallet-btn {
-            background: linear-gradient(135deg, var(--neon), var(--purple));
-            border: none; padding: 8px 16px; border-radius: 12px; color: #fff;
-            font-weight: 900; font-size: 11px; cursor: pointer; box-shadow: 0 0 15px rgba(0,242,255,0.4);
-        }
+        /* Mascot & Clicker */
+        .game-zone { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
+        #mascot-container { width: 280px; height: 280px; cursor: pointer; transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; }
+        #mascot-container:active { transform: scale(0.9); }
+        .tap-particle { position: absolute; color: var(--neon); font-weight: 900; font-family: 'Orbitron'; pointer-events: none; animation: tapFloat 0.8s ease-out forwards; }
 
-        /* Stats Bar */
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
-        .stat-card { background: var(--glass); padding: 8px; border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
-        .stat-card small { font-size: 9px; color: var(--neon); display: block; }
-        .stat-card b { font-size: 13px; font-family: 'Orbitron'; }
+        /* Feature Cards */
+        .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; padding: 15px; margin-bottom: 90px; }
+        .card { background: var(--glass); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 15px; backdrop-filter: blur(10px); position: relative; overflow: hidden; }
+        .card::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent, rgba(255,255,255,0.05), transparent); transform: rotate(45deg); transition: 0.5s; }
+        .card:active::after { left: 100%; }
+        .card i { font-size: 24px; color: var(--purple); margin-bottom: 10px; display: block; }
+        .card b { font-size: 14px; display: block; }
+        .card small { font-size: 10px; opacity: 0.6; }
 
-        /* Main Screen */
-        .screen { flex-grow: 1; overflow-y: auto; padding: 0 15px 100px; display: none; }
-        .screen.active { display: block; animation: slideUp 0.3s ease; }
-
-        /* Clicker Area */
-        .clicker-box { height: 60vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        #coin-3d-portal { width: 300px; height: 300px; position: relative; cursor: pointer; }
-        .energy-bar { width: 80%; height: 8px; background: #222; border-radius: 10px; margin-top: 20px; overflow: hidden; border: 1px solid #444; }
-        #energy-fill { width: 100%; height: 100%; background: linear-gradient(90deg, var(--gold), #ff8800); transition: 0.3s; }
-
-        /* Store & Items */
-        .store-item {
-            background: var(--glass); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 15px; padding: 15px; margin-bottom: 12px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .item-info b { display: block; color: var(--neon); }
-        .buy-btn { background: var(--gold); border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; }
-
-        /* Wallet Modal */
-        #wallet-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 1000; display: none;
-            justify-content: center; align-items: center;
-        }
-        .modal-content {
-            background: #111; width: 85%; border-radius: 25px; padding: 25px;
-            border: 1px solid var(--neon); text-align: center;
-        }
-        .wallet-option {
-            background: #1a1a1a; padding: 15px; border-radius: 15px; margin: 10px 0;
-            display: flex; align-items: center; gap: 15px; cursor: pointer; border: 1px solid #333;
-        }
-
-        /* Navigation */
-        nav {
-            position: fixed; bottom: 0; width: 100%; height: 80px;
-            background: rgba(5, 5, 10, 0.95); border-top: 1px solid var(--neon);
-            display: flex; justify-content: space-around; align-items: center;
-        }
-        .nav-item { color: #555; text-align: center; font-size: 10px; cursor: pointer; transition: 0.3s; }
-        .nav-item.active { color: var(--neon); transform: translateY(-5px); }
+        /* Bottom Menu */
+        nav { position: fixed; bottom: 0; width: 100%; height: 85px; background: rgba(5,5,10,0.9); border-top: 1px solid rgba(0,242,255,0.2); backdrop-filter: blur(20px); display: flex; justify-content: space-around; align-items: center; padding-bottom: 15px; }
+        .nav-item { color: #555; font-size: 10px; font-weight: bold; text-align: center; cursor: pointer; transition: 0.3s; }
+        .nav-item.active { color: var(--neon); text-shadow: 0 0 10px var(--neon); }
         .nav-item i { font-size: 24px; margin-bottom: 5px; }
 
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        /* Animations */
+        @keyframes tapFloat { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-150px) scale(1.5); } }
+        
+        /* Modal Style */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        .modal-box { background: #111; width: 85%; border-radius: 30px; padding: 25px; border: 1px solid var(--neon); text-align: center; }
     </style>
 </head>
 <body>
 
-<canvas id="space-engine"></canvas>
+<div id="bg-space" style="position:fixed; inset:0; z-index:-1"></div>
 
-<div class="shell">
+<div class="app-shell">
     <header>
-        <div class="header-top">
-            <div id="user-info"><b>@COMMANDER</b></div>
-            <button class="wallet-btn" onclick="openWallets()">CONNECT WEB3</button>
+        <div class="top-nav">
+            <div style="display:flex; align-items:center; gap:10px">
+                <img id="pfp" src="https://api.dicebear.com/7.x/bottts/svg?seed=Burl" style="width:40px; border-radius:12px; border:1px solid var(--neon)">
+                <div>
+                    <div style="font-size:12px; font-weight:900" id="username">PILOT_X</div>
+                    <div class="level-badge">LVL 04: COMMANDER</div>
+                </div>
+            </div>
+            <button onclick="openModal('web3')" style="background:var(--neon); color:#000; border:none; padding:8px 15px; border-radius:12px; font-weight:900; font-size:10px">WEB3 CONNECT</button>
         </div>
-        <div class="stats-grid">
-            <div class="stat-card"><small>EARN PER TAP</small><b>+<span id="ept">1</span></b></div>
-            <div class="stat-card"><small>PROFIT / HOUR</small><b style="color:var(--gold)">+<span id="pph">0</span></b></div>
-            <div class="stat-card"><small>GALAXY RANK</small><b>#<span id="rank">99+</span></b></div>
-        </div>
+        <div class="exp-bar-container"><div id="exp-fill"></div></div>
     </header>
 
-    <div style="text-align:center; margin-top:10px">
-        <div style="font-size:3.5rem; font-weight:900; font-family:'Orbitron'; text-shadow:0 0 20px var(--neon)" id="main-bal">0</div>
-        <small id="market-price" style="color:#888">BURL Price: $0.0024</small>
+    <div class="dashboard">
+        <div class="main-balance" id="bal-text">0</div>
+        <div style="color:var(--gold); font-size:12px; letter-spacing:2px">PROFIT PER HOUR: +<span id="pph-text">1.2K</span> ⛏️</div>
     </div>
 
-    <main id="scr-home" class="screen active">
-        <div class="clicker-box">
-            <div id="coin-3d-portal"></div>
-            <div class="energy-bar"><div id="energy-fill"></div></div>
-            <div style="margin-top:10px"><i class="fa-solid fa-bolt" style="color:var(--gold)"></i> <span id="cur-energy">1000</span> / 1000</div>
+    <div class="game-zone">
+        <div id="mascot-container">
+            <svg viewBox="0 0 200 200" id="mascot-svg">
+                <defs>
+                    <radialGradient id="grad1" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" style="stop-color:var(--neon);stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:var(--purple);stop-opacity:1" />
+                    </radialGradient>
+                </defs>
+                <circle cx="100" cy="100" r="80" fill="url(#grad1)" opacity="0.2">
+                    <animate attributeName="r" values="80;85;80" dur="3s" repeatCount="indefinite" />
+                </circle>
+                <g id="face">
+                    <circle cx="70" cy="80" r="10" fill="#fff" />
+                    <circle cx="130" cy="80" r="10" fill="#fff" />
+                    <path d="M 70 130 Q 100 160 130 130" stroke="#fff" stroke-width="8" fill="transparent" stroke-linecap="round" />
+                </g>
+            </svg>
         </div>
-    </main>
+        <div style="margin-top:20px; font-weight:900; color:var(--gold)">
+            <i class="fa-solid fa-bolt"></i> <span id="energy">1000</span>/1000
+        </div>
+    </div>
 
-    <main id="scr-store" class="screen">
-        <h2 style="font-family:'Orbitron'">GALAXY SHOP</h2>
-        <div class="store-item">
-            <div class="item-info"><b>Super Nova Booster</b><small>+5 per tap | 10k Burl</small></div>
-            <button class="buy-btn" onclick="buy(10000, 'ept', 5)">BUY</button>
+    <div class="feature-grid" id="main-grid">
+        <div class="card" onclick="openModal('upgrades')">
+            <i class="fa-solid fa-rocket"></i>
+            <b>Boosters</b>
+            <small>Multi-tap & Speed</small>
         </div>
-        <div class="store-item">
-            <div class="item-info"><b>AI Mining Rig</b><small>+500 PPH | 50k Burl</small></div>
-            <button class="buy-btn" onclick="buy(50000, 'pph', 500)">BUY</button>
+        <div class="card" onclick="openModal('tasks')">
+            <i class="fa-solid fa-list-check"></i>
+            <b>Missions</b>
+            <small>Earn 500k Burl</small>
         </div>
-    </main>
-
-    <main id="scr-games" class="screen">
-        <h2 style="font-family:'Orbitron'">BURL ARCADE</h2>
-        <div class="store-item" style="flex-direction:column; gap:15px">
-            <img src="https://via.placeholder.com/300x150/00f2ff/000?text=SPACE+JUMP" style="width:100%; border-radius:15px">
-            <button class="wallet-btn" style="width:100%" onclick="tg.showAlert('Game starting...')">PLAY & EARN</button>
+        <div class="card" onclick="openModal('friends')">
+            <i class="fa-solid fa-user-plus"></i>
+            <b>Allies</b>
+            <small>Invite & Get 10%</small>
         </div>
-    </main>
+        <div class="card" onclick="openModal('leaderboard')">
+            <i class="fa-solid fa-crown"></i>
+            <b>Ranking</b>
+            <small>Global Top 100</small>
+        </div>
+    </div>
 
     <nav>
-        <div class="nav-item active" onclick="nav('home', this)"><i class="fa-solid fa-shuttle-space"></i><br>HOME</div>
-        <div class="nav-item" onclick="nav('store', this)"><i class="fa-solid fa-cart-shopping"></i><br>SHOP</div>
-        <div class="nav-item" onclick="nav('games', this)"><i class="fa-solid fa-gamepad"></i><br>GAMES</div>
-        <div class="nav-item" onclick="tg.showConfirm('Open DEX?')"><i class="fa-solid fa-chart-line"></i><br>TRADE</div>
+        <div class="nav-item active"><i class="fa-solid fa-gamepad"></i><br>PLAY</div>
+        <div class="nav-item"><i class="fa-solid fa-pickaxe"></i><br>MINE</div>
+        <div class="nav-item"><i class="fa-solid fa-users"></i><br>FRIENDS</div>
+        <div class="nav-item"><i class="fa-solid fa-parachute-box"></i><br>AIRDROP</div>
     </nav>
 </div>
 
-<div id="wallet-modal">
-    <div class="modal-content">
-        <h2 style="font-family:'Orbitron'">SELECT WALLET</h2>
-        <div class="wallet-option" onclick="selectWallet('Tonkeeper')">
-            <img src="https://ton.org/download/tonkeeper.png" width="30"> <b>Tonkeeper</b>
-        </div>
-        <div class="wallet-option" onclick="selectWallet('OKX Wallet')">
-            <img src="https://pbs.twimg.com/profile_images/1615563963428134913/OitUvGMc_400x400.jpg" width="30" style="border-radius:50%"> <b>OKX Wallet</b>
-        </div>
-        <div class="wallet-option" onclick="selectWallet('MetaMask')">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Logo.svg" width="30"> <b>MetaMask (BSC)</b>
-        </div>
-        <button class="wallet-btn" style="margin-top:20px; width:100%" onclick="closeWallets()">CLOSE</button>
+<div id="modal-container" class="modal" onclick="closeModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <h2 id="modal-title" style="font-family:'Orbitron'; color:var(--neon)">TITLE</h2>
+        <div id="modal-body" style="margin:20px 0; max-height: 400px; overflow-y: auto;"></div>
+        <button onclick="closeModal()" style="width:100%; padding:15px; border-radius:15px; background:var(--glass); border:1px solid #333; color:#fff; font-weight:bold">CLOSE</button>
     </div>
 </div>
 
@@ -169,115 +157,109 @@
     tg.expand();
 
     let state = {
-        bal: 0, ept: 1, pph: 0, energy: 1000, maxEnergy: 1000,
-        uid: tg.initDataUnsafe.user?.id || 12345
+        bal: 0, pph: 1200, energy: 1000, maxEnergy: 1000, ept: 1, exp: 0
     };
 
-    // --- THREE.JS ENGINE ---
+    // --- Background Space Engine ---
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('space-engine'), antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    document.getElementById('bg-space').appendChild(renderer.domElement);
 
-    // Nebula Effect
-    const particles = new THREE.BufferGeometry();
-    const count = 15000;
-    const pos = new Float32Array(count * 3);
-    for(let i=0; i<count*3; i++) pos[i] = (Math.random()-0.5)*1000;
-    particles.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const starStuff = new THREE.Points(particles, new THREE.PointsMaterial({color: 0x00f2ff, size: 0.5}));
-    scene.add(starStuff);
-
-    // 3D Coin
-    const coinScene = new THREE.Scene();
-    const uiRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-    uiRenderer.setSize(300, 300);
-    document.getElementById('coin-3d-portal').appendChild(uiRenderer.domElement);
-    const coinGeo = new THREE.CylinderGeometry(10, 10, 1, 32);
-    const coinMat = new THREE.MeshStandardMaterial({ color: 0xf3ba2f, metalness: 1, roughness: 0.3 });
-    const coinMesh = new THREE.Mesh(coinGeo, coinMat);
-    coinMesh.rotation.x = Math.PI / 2;
-    coinScene.add(coinMesh);
-    const light = new THREE.PointLight(0xffffff, 2); light.position.set(10, 10, 10);
-    coinScene.add(light);
-    coinScene.add(new THREE.AmbientLight(0xffffff, 0.5));
-    const uiCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000); uiCamera.position.z = 30;
+    const starGeo = new THREE.BufferGeometry();
+    const starCoords = [];
+    for(let i=0; i<10000; i++) starCoords.push((Math.random()-0.5)*2000, (Math.random()-0.5)*2000, (Math.random()-0.5)*2000);
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starCoords, 3));
+    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0x4444ff, size: 0.7}));
+    scene.add(stars);
+    camera.position.z = 1;
 
     function animate() {
         requestAnimationFrame(animate);
-        starStuff.rotation.y += 0.0005;
-        coinMesh.rotation.y += 0.02;
+        stars.rotation.y += 0.0002;
         renderer.render(scene, camera);
-        uiRenderer.render(coinScene, uiCamera);
     }
     animate();
 
-    // --- CORE LOGIC ---
-    function handleTap(e) {
-        if(state.energy <= 0) { tg.showAlert("Energy Depleted!"); return; }
+    // --- GAME LOGIC ---
+    const mascot = document.getElementById('mascot-container');
+    mascot.addEventListener('touchstart', (e) => {
+        if(state.energy <= 0) return;
+        
+        // Update State
         state.bal += state.ept;
         state.energy -= 1;
-        updateUI();
+        state.exp += 0.1;
         
-        // Haptics & Visuals
-        tg.HapticFeedback.impactOccurred('heavy');
-        coinMesh.scale.set(1.2, 1.2, 1.2);
-        setTimeout(() => coinMesh.scale.set(1, 1, 1), 50);
+        // Haptics
+        tg.HapticFeedback.impactOccurred('medium');
+        
+        // Visuals
+        updateUI();
+        createParticle(e.touches[0].clientX, e.touches[0].clientY);
+    });
 
-        // Float Text
-        const f = document.createElement('div');
-        f.style.position = 'fixed'; f.style.left = e.clientX + 'px'; f.style.top = e.clientY + 'px';
-        f.style.color = 'var(--neon)'; f.style.fontWeight = '900'; f.innerText = `+${state.ept}`;
-        f.style.pointerEvents = 'none'; f.animate([{transform:'translateY(0)', opacity:1},{transform:'translateY(-100px)', opacity:0}], 800);
-        document.body.appendChild(f);
-        setTimeout(() => f.remove(), 800);
+    function createParticle(x, y) {
+        const p = document.createElement('div');
+        p.className = 'tap-particle';
+        p.innerText = `+${state.ept}`;
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 800);
     }
 
     function updateUI() {
-        document.getElementById('main-bal').innerText = Math.floor(state.bal).toLocaleString();
-        document.getElementById('ept').innerText = state.ept;
-        document.getElementById('pph').innerText = state.pph.toLocaleString();
-        document.getElementById('cur-energy').innerText = Math.floor(state.energy);
-        document.getElementById('energy-fill').style.width = (state.energy/state.maxEnergy * 100) + '%';
+        document.getElementById('bal-text').innerText = Math.floor(state.bal).toLocaleString();
+        document.getElementById('energy').innerText = Math.floor(state.energy);
+        document.getElementById('exp-fill').style.width = (state.exp % 100) + '%';
     }
 
-    function nav(id, el) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById('scr-'+id).classList.add('active');
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        el.classList.add('active');
+    // Modal System
+    function openModal(type) {
+        const m = document.getElementById('modal-container');
+        const title = document.getElementById('modal-title');
+        const body = document.getElementById('modal-body');
+        m.style.display = 'flex';
+
+        if(type === 'web3') {
+            title.innerText = "WEB3 WALLET";
+            body.innerHTML = `
+                <div style="background:#1a1a1a; padding:15px; border-radius:15px; margin-bottom:10px; display:flex; align-items:center; gap:15px; cursor:pointer" onclick="connect('Tonkeeper')">
+                    <img src="https://ton.org/download/tonkeeper.png" width="30"> <b>Tonkeeper</b>
+                </div>
+                <div style="background:#1a1a1a; padding:15px; border-radius:15px; display:flex; align-items:center; gap:15px; cursor:pointer" onclick="connect('OKX')">
+                    <img src="https://pbs.twimg.com/profile_images/1615563963428134913/OitUvGMc_400x400.jpg" width="30" style="border-radius:50%"> <b>OKX Wallet</b>
+                </div>
+            `;
+        } else if(type === 'upgrades') {
+            title.innerText = "UPGRADES";
+            body.innerHTML = `
+                <div class="card" style="margin-bottom:10px"><b>Multitap</b><br><small>Level 5 | Cost: 50k</small></div>
+                <div class="card"><b>Energy Limit</b><br><small>Level 2 | Cost: 10k</small></div>
+            `;
+        }
     }
 
-    function openWallets() { document.getElementById('wallet-modal').style.display = 'flex'; }
-    function closeWallets() { document.getElementById('wallet-modal').style.display = 'none'; }
-    
-    function selectWallet(name) {
-        closeWallets();
-        tg.showConfirm(`هل تريد ربط محفظة ${name}؟`, (ok) => {
+    function closeModal() { document.getElementById('modal-container').style.display = 'none'; }
+
+    function connect(name) {
+        tg.showConfirm(`Connect to ${name}?`, (ok) => {
             if(ok) {
-                document.querySelector('.wallet-btn').innerText = name.toUpperCase() + " (READY)";
                 confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+                closeModal();
             }
         });
     }
 
-    function buy(cost, type, val) {
-        if(state.bal >= cost) {
-            state.bal -= cost;
-            state[type] += val;
-            updateUI();
-            tg.showAlert("تم الشراء بنجاح!");
-        } else { tg.showAlert("الرصيد غير كافٍ!"); }
-    }
-
-    // Energy Regen & Passive Income
+    // Passive Income & Energy Regen
     setInterval(() => {
-        if(state.energy < state.maxEnergy) state.energy += 1.5;
         state.bal += (state.pph / 3600);
+        if(state.energy < state.maxEnergy) state.energy += 1;
         updateUI();
     }, 1000);
 
-    document.getElementById('coin-3d-portal').onclick = handleTap;
     updateUI();
 </script>
 </body>
