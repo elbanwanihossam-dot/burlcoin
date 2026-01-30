@@ -5,150 +5,165 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BurlCoin Galactic Web3</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #00d2ff; --gold: #f3ba2f; --bg: #050505; }
+        :root { --neon: #00f2ff; --gold: #f3ba2f; --glass: rgba(255, 255, 255, 0.05); }
+        body { margin: 0; background: #020205; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; }
         
-        body, html { margin: 0; padding: 0; background: var(--bg); color: white; font-family: 'Orbitron', sans-serif; overflow: hidden; height: 100%; }
+        /* تأثير النجوم المتحركة */
+        #stars-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
 
-        /* خلفية الفضاء المتحركة */
-        #space-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%); overflow: hidden; }
-        .star { position: absolute; background: white; border-radius: 50%; opacity: 0.5; animation: move 50s linear infinite; }
-        @keyframes move { from { transform: translateY(0); } to { transform: translateY(-1000px); } }
+        .container { height: 100vh; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
 
-        .app-wrapper { height: 100vh; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px); }
+        /* شريط الويب 3 العلوي */
+        .web3-header { display: flex; justify-content: space-between; align-items: center; background: var(--glass); padding: 10px 15px; border-radius: 20px; border: 1px solid rgba(0, 242, 255, 0.2); backdrop-filter: blur(10px); }
+        .wallet-btn { background: linear-gradient(90deg, #00f2ff, #0066ff); border: none; padding: 8px 15px; border-radius: 12px; color: white; font-weight: bold; font-size: 12px; cursor: pointer; }
 
-        /* شريط أسعار العملات لايف */
-        .crypto-ticker { background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 10px; font-size: 12px; display: flex; gap: 15px; overflow-x: auto; white-space: nowrap; border: 1px solid rgba(255,255,255,0.1); }
-        .ticker-item { display: flex; gap: 5px; align-items: center; }
-        .up { color: #00ff88; }
+        /* عداد الرصيد الاحترافي */
+        .balance-section { text-align: center; margin: 30px 0; }
+        .main-balance { font-size: 4rem; font-weight: 900; letter-spacing: -2px; background: linear-gradient(to bottom, #fff, #888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .ton-value { color: var(--neon); font-size: 1rem; opacity: 0.8; }
 
-        /* عداد الكوين الشيك */
-        .balance-container { text-align: center; margin: 20px 0; position: relative; }
-        .main-balance { font-size: 3.5rem; font-weight: 900; background: linear-gradient(to bottom, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 15px rgba(243, 186, 47, 0.5)); }
-        .ton-estimate { color: #00d2ff; font-size: 14px; margin-top: 5px; letter-spacing: 2px; }
+        /* رسم بياني للأسعار لايف */
+        .chart-container { background: var(--glass); height: 120px; border-radius: 15px; margin: 15px 0; padding: 10px; border: 1px solid rgba(255,255,255,0.05); }
 
-        /* زر العملة 3D */
-        .coin-3d-wrap { perspective: 1000px; margin: auto; }
-        .coin-3d { width: 220px; height: 220px; position: relative; transform-style: preserve-3d; transition: transform 0.1s; cursor: pointer; }
-        .coin-3d:active { transform: scale(0.9) rotateX(20deg); }
-        .coin-face { position: absolute; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, #f3ba2f, #a87f1a); box-shadow: 0 0 50px rgba(243,186,47,0.4), inset 0 0 20px rgba(255,255,255,0.5); display: flex; align-items: center; justify-content: center; border: 4px solid #ffd700; }
-        .coin-face img { width: 70%; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)); }
+        /* زر العملة المركزي */
+        .main-clicker { flex-grow: 1; display: flex; justify-content: center; align-items: center; position: relative; }
+        .burl-coin { width: 240px; height: 240px; background: url('https://cryptologos.cc/logos/toncoin-ton-logo.png') no-repeat center; background-size: 80%; border-radius: 50%; box-shadow: 0 0 60px rgba(0, 242, 255, 0.3), inset 0 0 30px rgba(0, 242, 255, 0.2); border: 2px solid rgba(0, 242, 255, 0.5); cursor: pointer; transition: 0.1s; }
+        .burl-coin:active { transform: scale(0.95) rotateY(15deg); }
 
-        /* الأزرار الحديثة */
-        .glass-btn { background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .glass-btn:hover { background: rgba(255, 255, 255, 0.15); box-shadow: 0 0 20px var(--primary); }
+        /* الأزرار والمقاييس */
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 80px; }
+        .glass-card { background: var(--glass); padding: 15px; border-radius: 18px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        .glass-card h4 { margin: 0; font-size: 0.8rem; color: #888; }
+        .glass-card p { margin: 5px 0 0; font-weight: bold; color: var(--gold); }
 
-        /* نافبار ويب 3 */
-        nav { position: fixed; bottom: 20px; left: 20px; right: 20px; background: rgba(0, 0, 0, 0.8); border: 1px solid var(--primary); border-radius: 20px; display: flex; justify-content: space-around; padding: 15px; box-shadow: 0 0 30px rgba(0, 210, 255, 0.2); }
-        .nav-link { color: #888; text-decoration: none; font-size: 12px; text-transform: uppercase; }
-        .nav-link.active { color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+        /* القائمة السفلية */
+        nav { position: fixed; bottom: 15px; left: 15px; right: 15px; height: 70px; background: rgba(0,0,0,0.8); backdrop-filter: blur(20px); border-radius: 25px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .nav-icon { text-align: center; font-size: 10px; color: #555; cursor: pointer; }
+        .nav-icon.active { color: var(--neon); }
+        .nav-icon i { font-size: 20px; display: block; margin-bottom: 4px; }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
-<div id="space-bg"></div>
+<canvas id="stars-canvas"></canvas>
 
-<div class="app-wrapper">
-    <div class="crypto-ticker" id="ticker">
-        <div class="ticker-item">BTC: <span id="btc-price" class="up">...</span></div>
-        <div class="ticker-item">TON: <span id="ton-price" class="up">...</span></div>
-        <div class="ticker-item">BURL: <span>$0.0024</span></div>
-    </div>
+<div class="container">
+    <header class="web3-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 35px; height: 35px; background: var(--gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold;">B</div>
+            <span>Burl Hub</span>
+        </div>
+        <button class="wallet-btn" onclick="tg.showAlert('Connecting to TON Wallet...')">CONNECT WALLET</button>
+    </header>
 
-    <div class="balance-container">
+    <div class="balance-section">
         <div class="main-balance" id="bal">0</div>
-        <div class="ton-estimate" id="ton-est">≈ 0.00 TON</div>
+        <div class="ton-value" id="ton-est">≈ 0.00 TON</div>
     </div>
 
-    <div class="coin-3d-wrap" onclick="tap(event)">
-        <div class="coin-3d" id="main-coin">
-            <div class="coin-face">
-                <img src="https://cryptologos.cc/logos/toncoin-ton-logo.png" alt="BurlCoin">
-            </div>
+    <div class="chart-container">
+        <canvas id="priceChart"></canvas>
+    </div>
+
+    <div class="main-clicker">
+        <div class="burl-coin" onclick="tap(event)"></div>
+    </div>
+
+    <div class="stat-grid">
+        <div class="glass-card">
+            <h4>BTC / USD</h4>
+            <p id="btc-price">$ --,---</p>
+        </div>
+        <div class="glass-card">
+            <h4>TON / USD</h4>
+            <p id="ton-price">$ -.--</p>
         </div>
     </div>
-
-    <div id="tab-mine" style="margin-top: 20px; overflow-y: auto; flex: 1;">
-        <button class="glass-btn" onclick="connectWallet()">
-            <span>🔗 Connect Web3 Wallet</span>
-            <small style="color: var(--primary);">Connect</small>
-        </button>
-        <div class="glass-btn">
-            <span>🚀 Burl Multiplier</span>
-            <span style="color: var(--gold);">x2.5</span>
-        </div>
-    </div>
-
-    <nav>
-        <a href="#" class="nav-link active">Mining</a>
-        <a href="#" class="nav-link">Quests</a>
-        <a href="#" class="nav-link" onclick="tg.showAlert('Web3 DEX قريباً!')">Wallet</a>
-    </nav>
 </div>
+
+<nav>
+    <div class="nav-icon active"><i>💰</i>MINE</div>
+    <div class="nav-icon"><i>🚀</i>BOOST</div>
+    <div class="nav-icon"><i>📊</i>TRADE</div>
+    <div class="nav-icon"><i>⚙️</i>SETTINGS</div>
+</nav>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
+    let balance = 0;
 
-    let state = { 
-        bal: 0, 
-        pph: 0, 
-        uid: tg.initDataUnsafe.user?.id || 12345,
-        tonPrice: 5.40 
-    };
+    // 1. نظام النجوم المتحركة
+    const canvas = document.getElementById('stars-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const stars = Array.from({length: 200}, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2,
+        speed: Math.random() * 0.5 + 0.1
+    }));
 
-    // إنشاء النجوم في الخلفية
-    const space = document.getElementById('space-bg');
-    for (let i = 0; i < 150; i++) {
-        let star = document.createElement('div');
-        star.className = 'star';
-        let size = Math.random() * 3 + 'px';
-        star.style.width = size; star.style.height = size;
-        star.style.left = Math.random() * 100 + '%';
-        star.style.top = Math.random() * 100 + '%';
-        star.style.animationDuration = (Math.random() * 50 + 20) + 's';
-        space.appendChild(star);
+    function animateStars() {
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = "#fff";
+        stars.forEach(s => {
+            s.y -= s.speed;
+            if(s.y < 0) s.y = canvas.height;
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
+            ctx.fill();
+        });
+        requestAnimationFrame(animateStars);
     }
+    animateStars();
 
-    // جلب أسعار العملات الحقيقية
-    async function fetchPrices() {
+    // 2. الرسم البياني للأسعار (Live Chart)
+    const chartCtx = document.getElementById('priceChart').getContext('2d');
+    const priceChart = new Chart(chartCtx, {
+        type: 'line',
+        data: {
+            labels: ['', '', '', '', '', ''],
+            datasets: [{
+                data: [5.2, 5.4, 5.3, 5.8, 5.6, 6.1],
+                borderColor: '#00f2ff',
+                tension: 0.4,
+                pointRadius: 0,
+                fill: true,
+                backgroundColor: 'rgba(0, 242, 255, 0.1)'
+            }]
+        },
+        options: { plugins: {legend: {display: false}}, scales: {x: {display: false}, y: {display: false}} }
+    });
+
+    // 3. جلب الأسعار الحقيقية
+    async function updateMarket() {
         try {
-            const res = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,the-open-network&vs_currencies=usd');
-            document.getElementById('btc-price').innerText = '$' + res.data.bitcoin.usd.toLocaleString();
-            document.getElementById('ton-price').innerText = '$' + res.data['the-open-network'].usd.toFixed(2);
-            state.tonPrice = res.data['the-open-network'].usd;
-            updateTonEstimate();
-        } catch (e) { console.error("Price API Error"); }
-    }
-
-    function updateTonEstimate() {
-        // افترضنا أن كل 10,000 Burl = 1 TON (نظام مقايسة)
-        let estimate = (state.bal / 10000).toFixed(2);
-        document.getElementById('ton-est').innerText = `≈ ${estimate} TON ($${(estimate * state.tonPrice).toFixed(2)})`;
+            const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,the-open-network&vs_currencies=usd');
+            const d = await r.json();
+            document.getElementById('btc-price').innerText = `$${d.bitcoin.usd.toLocaleString()}`;
+            document.getElementById('ton-price').innerText = `$${d['the-open-network'].usd.toFixed(2)}`;
+            
+            // تحديث التشارت عشوائياً للمحاكاة
+            priceChart.data.datasets[0].data.shift();
+            priceChart.data.datasets[0].data.push(d['the-open-network'].usd + (Math.random()-0.5));
+            priceChart.update();
+        } catch(e) {}
     }
 
     function tap(e) {
-        state.bal += 1;
-        document.getElementById('bal').innerText = Math.floor(state.bal).toLocaleString();
-        updateTonEstimate();
-        tg.HapticFeedback.impactOccurred('heavy');
-        
-        // تأثير ضوئي عند الضغط
-        const coin = document.getElementById('main-coin');
-        coin.style.transform = 'scale(0.9) rotateY(10deg)';
-        setTimeout(() => coin.style.transform = 'scale(1)', 100);
+        balance += 1;
+        document.getElementById('bal').innerText = balance.toLocaleString();
+        document.getElementById('ton-est').innerText = `≈ ${(balance/1000).toFixed(2)} TON`;
+        tg.HapticFeedback.impactOccurred('medium');
     }
 
-    function connectWallet() {
-        tg.showConfirm("هل تريد ربط محفظة TON (Web3)؟", (ok) => {
-            if(ok) tg.showAlert("تم الربط بنجاح! رصيدك الآن مؤمن على Blockchain.");
-        });
-    }
-
-    setInterval(fetchPrices, 30000);
-    window.onload = () => { fetchPrices(); };
+    setInterval(updateMarket, 5000);
+    updateMarket();
 </script>
 </body>
 </html>
