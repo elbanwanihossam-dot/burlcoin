@@ -1,108 +1,174 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BurlCoin CEO Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;900&display=swap');
-        :root { --main-color: #00d4ff; --secondary: #7241ff; --bg: #05050a; }
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Cairo', sans-serif; overflow: hidden; height: 100vh; }
-        .page { display: none; height: calc(100vh - 70px); padding: 20px; overflow-y: auto; text-align: center; }
-        .active { display: block; }
-        .header { display: flex; justify-content: space-between; padding: 15px; background: rgba(0,0,0,0.6); align-items: center; border-bottom: 1px solid #222; }
-        #balance { font-size: 45px; font-weight: 900; text-shadow: 0 0 20px var(--main-color); margin: 20px 0; }
-        .coin-btn { width: 240px; height: 240px; cursor: pointer; transition: 0.1s; filter: drop-shadow(0 0 30px var(--secondary)); margin: 0 auto; display: block; }
-        .coin-btn:active { transform: scale(0.9); }
-        .energy-container { width: 80%; margin: 20px auto; }
-        .energy-bar { height: 12px; background: #111; border-radius: 10px; border: 1px solid #333; overflow: hidden; }
-        #energy-fill { width: 100%; height: 100%; background: linear-gradient(90deg, var(--secondary), var(--main-color)); }
-        .nav { position: fixed; bottom: 0; width: 100%; height: 70px; background: #000; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #222; }
-        .nav-item { font-size: 11px; color: #555; cursor: pointer; text-align: center; }
-        .nav-item.active { color: var(--main-color); }
-        .card { background: #16161f; border-radius: 15px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
-        .buy-btn { background: var(--main-color); border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; }
-        .pop { position: absolute; color: white; font-weight: 900; animation: fadeUp 0.7s forwards; pointer-events: none; font-size: 24px; }
-        @keyframes fadeUp { to { transform: translateY(-100px); opacity: 0; } }
+        :root { --primary: #f3ba2f; --bg: #000; --card-bg: #1c1f24; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; overflow: hidden; }
+        
+        /* Header & Stats */
+        .header { padding: 20px; display: flex; justify-content: space-between; align-items: center; background: #121212; }
+        .stat-card { background: var(--card-bg); padding: 10px; border-radius: 12px; min-width: 45%; border: 1px solid #333; }
+        .stat-val { color: var(--primary); font-weight: bold; font-size: 1.2em; }
+
+        /* Main Coin Section */
+        #main-game { padding-top: 50px; display: block; }
+        .coin-container { position: relative; width: 250px; height: 250px; margin: 0 auto; }
+        #coin { width: 100%; filter: drop-shadow(0 0 20px var(--primary)); cursor: pointer; transition: transform 0.1s; }
+        #coin:active { transform: scale(0.92); }
+
+        /* Upgrade Cards Section */
+        #mining-section { display: none; padding: 20px; height: 70vh; overflow-y: auto; }
+        .upgrade-card { background: var(--card-bg); border-radius: 15px; padding: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid var(--primary); }
+        .upgrade-info h4 { margin: 0; color: #fff; }
+        .upgrade-info p { margin: 5px 0; font-size: 0.8em; color: #aaa; }
+
+        /* Navigation Bar */
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #121212; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #333; }
+        .nav-item { color: #888; text-decoration: none; font-size: 0.9em; cursor: pointer; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+
+        .btn-buy { background: var(--primary); color: black; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
+
     <div class="header">
-        <div style="font-size: 12px;">🏆 Rank: <span id="rank">CEO</span></div>
-        <div id="ton-connect"></div>
+        <div class="stat-card">💰 الرصيد<br><span id="balance" class="stat-val">0</span></div>
+        <div class="stat-card">⏳ ربح/ساعة<br><span id="pph" class="stat-val">0</span></div>
     </div>
 
-    <div id="game" class="page active">
-        <div id="balance">0</div>
-        <div style="color: var(--main-color); font-size: 12px; margin-bottom: 10px;">PROFIT PER HOUR: +<span id="pph">0</span></div>
-        <img src="https://static.smartone.com/common/images/crypto/eth_logo.png" class="coin-btn" id="tap-btn">
-        <div class="energy-container">
-            <div style="margin-bottom: 5px;">⚡ <span id="nrg">1000</span>/1000</div>
-            <div class="energy-bar"><div id="energy-fill"></div></div>
+    <div id="main-game">
+        <div class="coin-container">
+            <img src="https://cryptologos.cc/logos/toncoin-ton-logo.png" id="coin" alt="BurlCoin">
+        </div>
+        <h2 style="margin-top: 30px;">CEO Level: <span id="level">1</span></h2>
+        <div id="ton-connect" style="display: flex; justify-content: center; margin-top: 20px;"></div>
+    </div>
+
+    <div id="mining-section">
+        <h3 style="text-align: right;">تطويرات الـ CEO 📈</h3>
+        
+        <div class="upgrade-card">
+            <div class="upgrade-info">
+                <h4>فريق البرمجة 💻</h4>
+                <p>تكلفة: 500 | ربح: +50/ساعة</p>
+            </div>
+            <button class="btn-buy" onclick="buyUpgrade('DevTeam', 500, 50)">شراء</button>
+        </div>
+
+        <div class="upgrade-card">
+            <div class="upgrade-info">
+                <h4>حملة تسويق 📢</h4>
+                <p>تكلفة: 2000 | ربح: +250/ساعة</p>
+            </div>
+            <button class="btn-buy" onclick="buyUpgrade('Marketing', 2000, 250)">شراء</button>
+        </div>
+
+        <div class="upgrade-card">
+            <div class="upgrade-info">
+                <h4>رخصة دبي 🏗️</h4>
+                <p>تكلفة: 10000 | ربح: +1500/ساعة</p>
+            </div>
+            <button class="btn-buy" onclick="buyUpgrade('License', 10000, 1500)">شراء</button>
         </div>
     </div>
 
-    <div id="mine" class="page">
-        <h2>Upgrades & Cards</h2>
-        <div class="card">
-            <div><h4>Data Center</h4><p>Income: +100/h</p><p id="c1">Cost: 500</p></div>
-            <button class="buy-btn" onclick="buy(1, 500, 100)">Upgrade</button>
-        </div>
-        <div class="card">
-            <div><h4>AI Bot</h4><p>Income: +500/h</p><p id="c2">Cost: 2000</p></div>
-            <button class="buy-btn" onclick="buy(2, 2000, 500)">Upgrade</button>
-        </div>
-    </div>
-
-    <div class="nav">
-        <div class="nav-item active" onclick="tab('game', this)">🎮<br>Game</div>
-        <div class="nav-item" onclick="tab('mine', this)">⛏️<br>Mine</div>
-        <div class="nav-item" onclick="tg.showAlert('Airdrop Soon!')">💎<br>Airdrop</div>
+    <div class="nav-bar">
+        <div class="nav-item active" id="nav-tap" onclick="showTab('tap')">⛏️ النقر</div>
+        <div class="nav-item" id="nav-mine" onclick="showTab('mine')">📈 التطوير</div>
+        <div class="nav-item" onclick="tg.showAlert('قريباً: نظام الأصدقاء!')">👥 الأصدقاء</div>
     </div>
 
     <script>
-        let b = 0, e = 1000, p = 0;
-        const tg = window.Telegram.WebApp; tg.expand();
-        
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://raw.githubusercontent.com/ton-connect/demo-dapp/main/public/tonconnect-manifest.json',
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let state = {
+            balance: parseFloat(localStorage.getItem('bal')) || 0,
+            pph: parseInt(localStorage.getItem('pph')) || 100,
+            lastSync: parseInt(localStorage.getItem('lastSync')) || Math.floor(Date.now() / 1000)
+        };
+
+        function showTab(tab) {
+            document.getElementById('main-game').style.display = tab === 'tap' ? 'block' : 'none';
+            document.getElementById('mining-section').style.display = tab === 'mine' ? 'block' : 'none';
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById('nav-' + tab).classList.add('active');
+        }
+
+        function updateUI() {
+            document.getElementById('balance').innerText = Math.floor(state.balance).toLocaleString();
+            document.getElementById('pph').innerText = state.pph.toLocaleString();
+            document.getElementById('level').innerText = Math.floor(state.balance / 100000) + 1;
+        }
+
+        document.getElementById('coin').onclick = (e) => {
+            state.balance += 1;
+            updateUI();
+            tg.HapticFeedback.impactOccurred('medium');
+            
+            // تأثير طيران الرقم +1
+            const x = e.clientX; const y = e.clientY;
+            const plus = document.createElement('div');
+            plus.innerText = '+1';
+            plus.style.position = 'absolute';
+            plus.style.left = x + 'px'; plus.style.top = y + 'px';
+            plus.style.color = '#f3ba2f'; plus.style.fontWeight = 'bold';
+            plus.style.animation = 'fly 0.5s forwards';
+            document.body.appendChild(plus);
+            setTimeout(() => plus.remove(), 500);
+        };
+
+        async function buyUpgrade(name, cost, bonus) {
+            if (state.balance >= cost) {
+                state.balance -= cost;
+                state.pph += bonus;
+                updateUI();
+                await syncWithServer(); // إرسال التحديث للسيرفر
+                tg.showAlert(`تم شراء ${name}!`);
+            } else {
+                tg.showAlert('رصيدك لا يكفي!');
+            }
+        }
+
+        async function syncWithServer() {
+            const userId = tg.initDataUnsafe.user?.id || 12345;
+            try {
+                const response = await fetch('http://localhost:3000/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, pph: state.pph, lastSync: state.lastSync })
+                });
+                const result = await response.json();
+                state.balance += result.earned;
+                state.lastSync = result.serverTime;
+                updateUI();
+                localStorage.setItem('bal', state.balance);
+                localStorage.setItem('pph', state.pph);
+                localStorage.setItem('lastSync', state.lastSync);
+            } catch (e) { console.log("Offline mode"); }
+        }
+
+        // المزامنة التلقائية
+        setInterval(syncWithServer, 20000);
+        updateUI();
+
+        const tonConnectUI = new TONConnectUI.TonConnectUI({
+            manifestUrl: 'https://elbanwanihossam-dot.github.io/burlcoin/tonconnect-manifest.json',
             buttonRootId: 'ton-connect'
         });
-
-        function tab(id, el) {
-            document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            el.classList.add('active');
-        }
-
-        document.getElementById('tap-btn').addEventListener('click', (ev) => {
-            if(e > 0) {
-                b++; e--; update();
-                const s = document.createElement('div'); s.className='pop'; s.innerText='+1';
-                s.style.left=ev.pageX+'px'; s.style.top=ev.pageY+'px';
-                document.body.appendChild(s); setTimeout(()=>s.remove(), 700);
-                tg.HapticFeedback.impactOccurred('medium');
-            }
-        });
-
-        function buy(id, cost, income) {
-            if(b >= cost) { b -= cost; p += income; update(); tg.showAlert('Success!'); }
-            else { tg.showAlert('No Money!'); }
-        }
-
-        function update() {
-            document.getElementById('balance').innerText = Math.floor(b).toLocaleString();
-            document.getElementById('pph').innerText = p.toLocaleString();
-            document.getElementById('nrg').innerText = e;
-            document.getElementById('energy-fill').style.width = (e/10)+'%';
-        }
-
-        setInterval(() => {
-            if(p > 0) { b += (p/3600); update(); }
-            if(e < 1000) { e += 2; update(); }
-        }, 1000);
     </script>
+
+    <style>
+        @keyframes fly {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
+        }
+    </style>
 </body>
 </html>
