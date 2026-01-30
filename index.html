@@ -3,392 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BurlCoin: Galactic War v3.0</title>
+    <title>BurlCoin: Galactic Sovereign</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;600;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
         :root {
-            --neon-blue: #00f2ff;
-            --neon-purple: #bc13fe;
-            --gold: #f3ba2f;
-            --bg-dark: #050508;
-            --card-bg: rgba(20, 20, 30, 0.8);
-            --glass: rgba(255, 255, 255, 0.03);
+            --neon: #00f2ff; --purple: #bc13fe; --gold: #f3ba2f; --red: #ff3e3e;
+            --bg: #020205; --glass: rgba(255, 255, 255, 0.05);
         }
 
-        body, html {
-            margin: 0; padding: 0; background: var(--bg-dark); color: white;
-            font-family: 'Exo 2', sans-serif; overflow: hidden; height: 100%;
-            user-select: none; -webkit-tap-highlight-color: transparent;
+        body, html { margin: 0; padding: 0; background: var(--bg); color: #fff; font-family: 'Exo 2', sans-serif; overflow: hidden; height: 100vh; }
+        
+        #space-engine { position: fixed; top: 0; left: 0; z-index: -1; }
+
+        /* UI Shell */
+        .shell { height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 10; }
+        
+        /* Glassmorphism Header */
+        header { 
+            padding: 15px; background: rgba(0,0,0,0.6); backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(0,242,255,0.2); 
         }
 
-        #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
-
-        .app-container {
-            display: flex; flex-direction: column; height: 100vh;
-            position: relative; z-index: 10;
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        .wallet-btn {
+            background: linear-gradient(135deg, var(--neon), var(--purple));
+            border: none; padding: 8px 16px; border-radius: 12px; color: #fff;
+            font-weight: 900; font-size: 11px; cursor: pointer; box-shadow: 0 0 15px rgba(0,242,255,0.4);
         }
 
-        /* Top Header */
-        header {
-            padding: 15px; background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,242,255,0.2);
+        /* Stats Bar */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; }
+        .stat-card { background: var(--glass); padding: 8px; border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .stat-card small { font-size: 9px; color: var(--neon); display: block; }
+        .stat-card b { font-size: 13px; font-family: 'Orbitron'; }
+
+        /* Main Screen */
+        .screen { flex-grow: 1; overflow-y: auto; padding: 0 15px 100px; display: none; }
+        .screen.active { display: block; animation: slideUp 0.3s ease; }
+
+        /* Clicker Area */
+        .clicker-box { height: 60vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #coin-3d-portal { width: 300px; height: 300px; position: relative; cursor: pointer; }
+        .energy-bar { width: 80%; height: 8px; background: #222; border-radius: 10px; margin-top: 20px; overflow: hidden; border: 1px solid #444; }
+        #energy-fill { width: 100%; height: 100%; background: linear-gradient(90deg, var(--gold), #ff8800); transition: 0.3s; }
+
+        /* Store & Items */
+        .store-item {
+            background: var(--glass); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 15px; padding: 15px; margin-bottom: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .item-info b { display: block; color: var(--neon); }
+        .buy-btn { background: var(--gold); border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; }
+
+        /* Wallet Modal */
+        #wallet-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000; display: none;
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: #111; width: 85%; border-radius: 25px; padding: 25px;
+            border: 1px solid var(--neon); text-align: center;
+        }
+        .wallet-option {
+            background: #1a1a1a; padding: 15px; border-radius: 15px; margin: 10px 0;
+            display: flex; align-items: center; gap: 15px; cursor: pointer; border: 1px solid #333;
         }
 
-        .user-bar { display: flex; justify-content: space-between; align-items: center; }
-        .rank-badge {
-            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
-            padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 800;
-        }
-
-        .web3-status {
-            display: flex; align-items: center; gap: 8px; font-size: 11px;
-            background: var(--glass); padding: 5px 10px; border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        /* Live Market Ticker */
-        .market-ticker {
-            font-size: 9px; padding: 5px 0; color: var(--neon-blue);
-            overflow: hidden; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-        .ticker-wrap { display: flex; gap: 25px; animation: tickerScroll 30s linear infinite; }
-
-        /* Main Score Section */
-        .score-box { text-align: center; margin: 20px 0; }
-        .pph-badge {
-            display: inline-flex; align-items: center; gap: 5px;
-            background: rgba(243, 186, 47, 0.1); color: var(--gold);
-            padding: 5px 15px; border-radius: 15px; font-size: 13px; font-weight: bold;
-        }
-        .main-balance {
-            font-family: 'Orbitron', sans-serif; font-size: 3.8rem; font-weight: 900;
-            margin: 10px 0; text-shadow: 0 0 20px var(--neon-blue);
-        }
-
-        /* Content Areas */
-        .main-content { flex-grow: 1; overflow-y: auto; padding: 0 15px 100px 15px; }
-        .page { display: none; animation: fadeIn 0.4s ease; }
-        .page.active { display: block; }
-
-        /* Clicker Zone */
-        .clicker-container {
-            height: 350px; display: flex; justify-content: center; align-items: center;
-            position: relative;
-        }
-        .coin-glow {
-            width: 250px; height: 250px; background: radial-gradient(circle, rgba(0,242,255,0.2) 0%, transparent 70%);
-            position: absolute; pointer-events: none;
-        }
-        #main-3d-target { width: 280px; height: 280px; cursor: pointer; z-index: 5; }
-
-        /* Card Styles (Hamster Style) */
-        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
-        .upgrade-card {
-            background: var(--card-bg); border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 18px; padding: 12px; transition: 0.2s;
-        }
-        .upgrade-card:active { transform: scale(0.95); }
-        .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-        .card-icon { width: 40px; height: 40px; background: var(--glass); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        .price-tag { color: var(--gold); font-weight: 800; font-size: 14px; margin-top: 10px; display: block; }
-
-        /* Navbar */
+        /* Navigation */
         nav {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 85px;
-            background: rgba(10, 10, 15, 0.95); backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(0, 242, 255, 0.3);
-            display: flex; justify-content: space-around; align-items: center; padding-bottom: 15px;
+            position: fixed; bottom: 0; width: 100%; height: 80px;
+            background: rgba(5, 5, 10, 0.95); border-top: 1px solid var(--neon);
+            display: flex; justify-content: space-around; align-items: center;
         }
-        .nav-tab {
-            display: flex; flex-direction: column; align-items: center; gap: 5px;
-            color: #555; font-size: 10px; font-weight: bold; cursor: pointer; transition: 0.3s;
-        }
-        .nav-tab.active { color: var(--neon-blue); }
-        .nav-tab i { font-size: 22px; }
+        .nav-item { color: #555; text-align: center; font-size: 10px; cursor: pointer; transition: 0.3s; }
+        .nav-item.active { color: var(--neon); transform: translateY(-5px); }
+        .nav-item i { font-size: 24px; margin-bottom: 5px; }
 
-        /* Animations */
-        @keyframes tickerScroll { from { transform: translateX(100%); } to { transform: translateX(-100%); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .floating-text {
-            position: absolute; color: white; font-weight: 900; font-family: 'Orbitron';
-            pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 100;
-        }
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-120px); } }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: var(--neon-blue); border-radius: 10px; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
-<canvas id="bg-canvas"></canvas>
+<canvas id="space-engine"></canvas>
 
-<div class="app-container">
+<div class="shell">
     <header>
-        <div class="user-bar">
-            <div style="display:flex; align-items:center; gap:10px">
-                <img id="user-pfp" src="https://via.placeholder.com/35" style="border-radius:50%; border:1px solid var(--neon-blue)">
-                <div>
-                    <div style="font-size:12px; font-weight:bold" id="user-name">COMMODORE</div>
-                    <div class="rank-badge">GALAXY OVERLORD</div>
-                </div>
-            </div>
-            <div class="web3-status" onclick="connectWallet()">
-                <i class="fa-solid fa-link"></i>
-                <span id="wallet-label">CONNECT WEB3</span>
-            </div>
+        <div class="header-top">
+            <div id="user-info"><b>@COMMANDER</b></div>
+            <button class="wallet-btn" onclick="openWallets()">CONNECT WEB3</button>
         </div>
-        <div class="market-ticker">
-            <div class="ticker-wrap" id="ticker-data">Fetching live galactic prices from Binance, OKX, and TON DEX...</div>
+        <div class="stats-grid">
+            <div class="stat-card"><small>EARN PER TAP</small><b>+<span id="ept">1</span></b></div>
+            <div class="stat-card"><small>PROFIT / HOUR</small><b style="color:var(--gold)">+<span id="pph">0</span></b></div>
+            <div class="stat-card"><small>GALAXY RANK</small><b>#<span id="rank">99+</span></b></div>
         </div>
     </header>
 
-    <div class="score-box">
-        <div class="pph-badge">
-            <i class="fa-solid fa-bolt"></i>
-            PROFIT PER HOUR: +<span id="pph-display">0</span>
-        </div>
-        <h1 class="main-balance" id="balance-display">0</h1>
-        <div style="color:var(--neon-blue); font-size:12px; letter-spacing:2px" id="ton-estimate">≈ 0.0000 TON</div>
+    <div style="text-align:center; margin-top:10px">
+        <div style="font-size:3.5rem; font-weight:900; font-family:'Orbitron'; text-shadow:0 0 20px var(--neon)" id="main-bal">0</div>
+        <small id="market-price" style="color:#888">BURL Price: $0.0024</small>
     </div>
 
-    <main class="main-content">
-        <section id="page-exchange" class="page active">
-            <div class="clicker-container">
-                <div class="coin-glow"></div>
-                <div id="main-3d-target"></div>
-            </div>
-            <div class="cards-grid">
-                <div class="upgrade-card" style="grid-column: span 2; background: linear-gradient(90deg, rgba(188,19,254,0.1), transparent); border-color: var(--neon-purple);">
-                    <div class="card-header">
-                        <div class="card-icon"><i class="fa-solid fa-trophy" style="color:var(--neon-purple)"></i></div>
-                        <div><b>DAILY COMBO</b><br><small>Unlock 3 cards to win 5M</small></div>
-                    </div>
-                </div>
-            </div>
-        </section>
+    <main id="scr-home" class="screen active">
+        <div class="clicker-box">
+            <div id="coin-3d-portal"></div>
+            <div class="energy-bar"><div id="energy-fill"></div></div>
+            <div style="margin-top:10px"><i class="fa-solid fa-bolt" style="color:var(--gold)"></i> <span id="cur-energy">1000</span> / 1000</div>
+        </div>
+    </main>
 
-        <section id="page-mine" class="page">
-            <h2 style="font-family:'Orbitron'; font-size:18px">GALACTIC MINING</h2>
-            <div class="cards-grid" id="upgrades-list">
-                </div>
-        </section>
+    <main id="scr-store" class="screen">
+        <h2 style="font-family:'Orbitron'">GALAXY SHOP</h2>
+        <div class="store-item">
+            <div class="item-info"><b>Super Nova Booster</b><small>+5 per tap | 10k Burl</small></div>
+            <button class="buy-btn" onclick="buy(10000, 'ept', 5)">BUY</button>
+        </div>
+        <div class="store-item">
+            <div class="item-info"><b>AI Mining Rig</b><small>+500 PPH | 50k Burl</small></div>
+            <button class="buy-btn" onclick="buy(50000, 'pph', 500)">BUY</button>
+        </div>
+    </main>
 
-        <section id="page-friends" class="page">
-            <h2 style="font-family:'Orbitron'">INVITE ALLIES</h2>
-            <div class="upgrade-card" style="margin-bottom:15px">
-                <p>Invite a friend and get <b>+50,000</b> BURL and 10% of their mining!</p>
-                <button class="price-tag" style="background:var(--neon-blue); color:black; border:none; padding:10px; width:100%; border-radius:10px" onclick="invite()">INVITE FRIEND</button>
-            </div>
-        </section>
-
-        <section id="page-airdrop" class="page">
-            <div style="text-align:center; padding:40px 0">
-                <i class="fa-solid fa-parachute-box" style="font-size:80px; color:var(--neon-blue)"></i>
-                <h2 style="font-family:'Orbitron'">AIRDROP TASK</h2>
-                <p style="opacity:0.7">Listing is coming! Complete tasks to qualify.</p>
-                <div class="upgrade-card" style="text-align:left">
-                    <b>1. Connect TON Wallet</b>
-                    <button class="price-tag" onclick="connectWallet()">DONE</button>
-                </div>
-            </div>
-        </section>
+    <main id="scr-games" class="screen">
+        <h2 style="font-family:'Orbitron'">BURL ARCADE</h2>
+        <div class="store-item" style="flex-direction:column; gap:15px">
+            <img src="https://via.placeholder.com/300x150/00f2ff/000?text=SPACE+JUMP" style="width:100%; border-radius:15px">
+            <button class="wallet-btn" style="width:100%" onclick="tg.showAlert('Game starting...')">PLAY & EARN</button>
+        </div>
     </main>
 
     <nav>
-        <div class="nav-tab active" onclick="switchPage('exchange', this)"><i class="fa-solid fa-rocket"></i>EXCHANGE</div>
-        <div class="nav-tab" onclick="switchPage('mine', this)"><i class="fa-solid fa-pickaxe"></i>MINE</div>
-        <div class="nav-tab" onclick="switchPage('friends', this)"><i class="fa-solid fa-users"></i>FRIENDS</div>
-        <div class="nav-tab" onclick="switchPage('airdrop', this)"><i class="fa-solid fa-coins"></i>AIRDROP</div>
+        <div class="nav-item active" onclick="nav('home', this)"><i class="fa-solid fa-shuttle-space"></i><br>HOME</div>
+        <div class="nav-item" onclick="nav('store', this)"><i class="fa-solid fa-cart-shopping"></i><br>SHOP</div>
+        <div class="nav-item" onclick="nav('games', this)"><i class="fa-solid fa-gamepad"></i><br>GAMES</div>
+        <div class="nav-item" onclick="tg.showConfirm('Open DEX?')"><i class="fa-solid fa-chart-line"></i><br>TRADE</div>
     </nav>
+</div>
+
+<div id="wallet-modal">
+    <div class="modal-content">
+        <h2 style="font-family:'Orbitron'">SELECT WALLET</h2>
+        <div class="wallet-option" onclick="selectWallet('Tonkeeper')">
+            <img src="https://ton.org/download/tonkeeper.png" width="30"> <b>Tonkeeper</b>
+        </div>
+        <div class="wallet-option" onclick="selectWallet('OKX Wallet')">
+            <img src="https://pbs.twimg.com/profile_images/1615563963428134913/OitUvGMc_400x400.jpg" width="30" style="border-radius:50%"> <b>OKX Wallet</b>
+        </div>
+        <div class="wallet-option" onclick="selectWallet('MetaMask')">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Logo.svg" width="30"> <b>MetaMask (BSC)</b>
+        </div>
+        <button class="wallet-btn" style="margin-top:20px; width:100%" onclick="closeWallets()">CLOSE</button>
+    </div>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
-    tg.enableClosingConfirmation();
 
     let state = {
-        balance: 0,
-        pph: 0,
-        uid: tg.initDataUnsafe.user?.id || 12345,
-        name: tg.initDataUnsafe.user?.first_name || "PILOT",
-        tonPrice: 5.4,
-        lastSync: Date.now()
+        bal: 0, ept: 1, pph: 0, energy: 1000, maxEnergy: 1000,
+        uid: tg.initDataUnsafe.user?.id || 12345
     };
 
-    // --- 1. THREE.JS ENGINE (3D SPACE & COIN) ---
+    // --- THREE.JS ENGINE ---
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / (window.innerHeight/2), 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), antialias: true, alpha: true });
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('space-engine'), antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
 
-    // Nebula Stars
-    const starGeo = new THREE.BufferGeometry();
-    const starPos = [];
-    for(let i=0; i<8000; i++) starPos.push((Math.random()-0.5)*1500, (Math.random()-0.5)*1500, (Math.random()-0.5)*1500);
-    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0x4444ff, size: 0.8, transparent: true, opacity: 0.6}));
-    scene.add(stars);
+    // Nebula Effect
+    const particles = new THREE.BufferGeometry();
+    const count = 15000;
+    const pos = new Float32Array(count * 3);
+    for(let i=0; i<count*3; i++) pos[i] = (Math.random()-0.5)*1000;
+    particles.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const starStuff = new THREE.Points(particles, new THREE.PointsMaterial({color: 0x00f2ff, size: 0.5}));
+    scene.add(starStuff);
 
-    // Main 3D Node
-    const nodeGeo = new THREE.IcosahedronGeometry(12, 1);
-    const nodeMat = new THREE.MeshPhongMaterial({ 
-        color: 0x00f2ff, wireframe: true, 
-        emissive: 0x00f2ff, emissiveIntensity: 0.4 
-    });
-    const nodeMesh = new THREE.Mesh(nodeGeo, nodeMat);
-    
-    // Attach to UI
-    const uiRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    uiRenderer.setSize(280, 280);
-    document.getElementById('main-3d-target').appendChild(uiRenderer.domElement);
-    const uiScene = new THREE.Scene();
-    const uiCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
-    uiCamera.position.z = 30;
-    uiScene.add(nodeMesh);
-    uiScene.add(new THREE.PointLight(0xffffff, 1.5).set(10,10,10));
+    // 3D Coin
+    const coinScene = new THREE.Scene();
+    const uiRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    uiRenderer.setSize(300, 300);
+    document.getElementById('coin-3d-portal').appendChild(uiRenderer.domElement);
+    const coinGeo = new THREE.CylinderGeometry(10, 10, 1, 32);
+    const coinMat = new THREE.MeshStandardMaterial({ color: 0xf3ba2f, metalness: 1, roughness: 0.3 });
+    const coinMesh = new THREE.Mesh(coinGeo, coinMat);
+    coinMesh.rotation.x = Math.PI / 2;
+    coinScene.add(coinMesh);
+    const light = new THREE.PointLight(0xffffff, 2); light.position.set(10, 10, 10);
+    coinScene.add(light);
+    coinScene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    const uiCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000); uiCamera.position.z = 30;
 
     function animate() {
         requestAnimationFrame(animate);
-        stars.rotation.y += 0.0003;
-        nodeMesh.rotation.y += 0.01;
-        nodeMesh.rotation.z += 0.005;
+        starStuff.rotation.y += 0.0005;
+        coinMesh.rotation.y += 0.02;
         renderer.render(scene, camera);
-        uiRenderer.render(uiScene, uiCamera);
+        uiRenderer.render(coinScene, uiCamera);
     }
     animate();
 
-    // --- 2. GAME LOGIC & UPGRADES ---
-    const upgrades = [
-        { id: 1, name: "Quantum CPU", icon: "💻", cost: 1000, pph: 50, lvl: 0 },
-        { id: 2, name: "Nebula Farm", icon: "🌌", cost: 5000, pph: 280, lvl: 0 },
-        { id: 3, name: "TON Validator", icon: "💎", cost: 15000, pph: 950, lvl: 0 },
-        { id: 4, name: "Blackhole Miner", icon: "🕳️", cost: 100000, pph: 6500, lvl: 0 },
-        { id: 5, name: "Dyson Sphere", icon: "☀️", cost: 1000000, pph: 75000, lvl: 0 }
-    ];
-
-    function initUpgrades() {
-        const container = document.getElementById('upgrades-list');
-        container.innerHTML = upgrades.map(u => `
-            <div class="upgrade-card" onclick="buyUpgrade(${u.id})">
-                <div class="card-header">
-                    <div class="card-icon">${u.icon}</div>
-                    <div><b>${u.name}</b><br><small>Lvl ${u.lvl}</small></div>
-                </div>
-                <div style="font-size:11px; opacity:0.7">+${u.pph} PPH</div>
-                <span class="price-tag">💰 ${u.cost.toLocaleString()}</span>
-            </div>
-        `).join('');
-    }
-
-    function buyUpgrade(id) {
-        const u = upgrades.find(x => x.id === id);
-        if(state.balance >= u.cost) {
-            state.balance -= u.cost;
-            state.pph += u.pph;
-            u.lvl++;
-            u.cost = Math.floor(u.cost * 1.5);
-            tg.HapticFeedback.notificationOccurred('success');
-            initUpgrades();
-            updateUI();
-            saveData();
-        } else {
-            tg.showAlert("You need more BURL tokens!");
-        }
-    }
-
-    // --- 3. CORE FUNCTIONS ---
+    // --- CORE LOGIC ---
     function handleTap(e) {
-        state.balance += 1;
+        if(state.energy <= 0) { tg.showAlert("Energy Depleted!"); return; }
+        state.bal += state.ept;
+        state.energy -= 1;
         updateUI();
         
-        // VFX
-        nodeMesh.scale.set(1.1, 1.1, 1.1);
-        setTimeout(() => nodeMesh.scale.set(1, 1, 1), 50);
-        
-        const rect = e.target.getBoundingClientRect();
-        const x = e.clientX || rect.left + rect.width/2;
-        const y = e.clientY || rect.top + rect.height/2;
-        
-        const float = document.createElement('div');
-        float.className = 'floating-text';
-        float.innerText = '+1';
-        float.style.left = x + 'px';
-        float.style.top = y + 'px';
-        document.body.appendChild(float);
-        setTimeout(() => float.remove(), 800);
-        
-        tg.HapticFeedback.impactOccurred('medium');
+        // Haptics & Visuals
+        tg.HapticFeedback.impactOccurred('heavy');
+        coinMesh.scale.set(1.2, 1.2, 1.2);
+        setTimeout(() => coinMesh.scale.set(1, 1, 1), 50);
+
+        // Float Text
+        const f = document.createElement('div');
+        f.style.position = 'fixed'; f.style.left = e.clientX + 'px'; f.style.top = e.clientY + 'px';
+        f.style.color = 'var(--neon)'; f.style.fontWeight = '900'; f.innerText = `+${state.ept}`;
+        f.style.pointerEvents = 'none'; f.animate([{transform:'translateY(0)', opacity:1},{transform:'translateY(-100px)', opacity:0}], 800);
+        document.body.appendChild(f);
+        setTimeout(() => f.remove(), 800);
     }
 
     function updateUI() {
-        document.getElementById('balance-display').innerText = Math.floor(state.balance).toLocaleString();
-        document.getElementById('pph-display').innerText = state.pph.toLocaleString();
-        document.getElementById('ton-estimate').innerText = `≈ ${(state.balance / 100000).toFixed(4)} TON`;
+        document.getElementById('main-bal').innerText = Math.floor(state.bal).toLocaleString();
+        document.getElementById('ept').innerText = state.ept;
+        document.getElementById('pph').innerText = state.pph.toLocaleString();
+        document.getElementById('cur-energy').innerText = Math.floor(state.energy);
+        document.getElementById('energy-fill').style.width = (state.energy/state.maxEnergy * 100) + '%';
     }
 
-    function switchPage(pageId, el) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById('page-' + pageId).classList.add('active');
-        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    function nav(id, el) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('scr-'+id).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         el.classList.add('active');
     }
 
-    async function fetchMarket() {
-        try {
-            const r = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,the-open-network,binancecoin,okb&vs_currencies=usd&include_24hr_change=true');
-            const d = r.data;
-            document.getElementById('ticker-data').innerHTML = `
-                <span>BTC: $${d.bitcoin.usd} (${d.bitcoin.usd_24h_change.toFixed(1)}%)</span>
-                <span>TON: $${d['the-open-network'].usd}</span>
-                <span>BNB: $${d.binancecoin.usd}</span>
-                <span>OKB: $${d.okb.usd}</span>
-            `;
-            state.tonPrice = d['the-open-network'].usd;
-        } catch(e) {}
-    }
-
-    function connectWallet() {
-        tg.showConfirm("Connect to TON Mainnet?", (ok) => {
+    function openWallets() { document.getElementById('wallet-modal').style.display = 'flex'; }
+    function closeWallets() { document.getElementById('wallet-modal').style.display = 'none'; }
+    
+    function selectWallet(name) {
+        closeWallets();
+        tg.showConfirm(`هل تريد ربط محفظة ${name}؟`, (ok) => {
             if(ok) {
-                state.wallet = "0x" + Math.random().toString(16).slice(2, 10) + "...";
-                document.getElementById('wallet-label').innerText = state.wallet;
-                document.getElementById('wallet-label').parentElement.style.borderColor = "var(--neon-blue)";
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                document.querySelector('.wallet-btn').innerText = name.toUpperCase() + " (READY)";
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
             }
         });
     }
 
-    // Data Sync
-    async function saveData() {
-        fetch('http://localhost:3000/sync', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: state.uid, balance: state.balance, pph: state.pph })
-        });
+    function buy(cost, type, val) {
+        if(state.bal >= cost) {
+            state.bal -= cost;
+            state[type] += val;
+            updateUI();
+            tg.showAlert("تم الشراء بنجاح!");
+        } else { tg.showAlert("الرصيد غير كافٍ!"); }
     }
 
-    // Passive Income Logic
+    // Energy Regen & Passive Income
     setInterval(() => {
-        state.balance += (state.pph / 3600);
+        if(state.energy < state.maxEnergy) state.energy += 1.5;
+        state.bal += (state.pph / 3600);
         updateUI();
     }, 1000);
 
-    // Initial Load
-    document.getElementById('main-3d-target').onclick = handleTap;
-    document.getElementById('user-name').innerText = state.name.toUpperCase();
-    initUpgrades();
-    fetchMarket();
-    setInterval(fetchMarket, 15000);
-    setInterval(saveData, 20000);
+    document.getElementById('coin-3d-portal').onclick = handleTap;
+    updateUI();
 </script>
 </body>
 </html>
